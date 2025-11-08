@@ -3,12 +3,12 @@
 function getApiBaseUrl() {
     const currentPath = window.location.pathname;
     const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/'));
-    
+
     // Jika di root atau subfolder, gunakan path relatif
     if (currentDir === '' || currentDir === '/') {
         return 'api/index.php';
     }
-    
+
     // Gunakan path relatif dari direktori saat ini
     return `${currentDir}/api/index.php`;
 }
@@ -38,38 +38,73 @@ function setupEventListeners() {
     document.getElementById('categoryFilter').addEventListener('change', handleFilter);
     document.getElementById('scoreFilter').addEventListener('change', handleFilter);
     document.getElementById('sortFilter').addEventListener('change', handleFilter);
+
+    // Sidebar functionality
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const closeSidebar = document.getElementById('closeSidebar');
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+
+    // Toggle sidebar
+    sidebarToggle.addEventListener('click', function () {
+        sidebar.classList.add('active');
+        document.body.classList.add('sidebar-active');
+    });
+
+    // Close sidebar
+    closeSidebar.addEventListener('click', function () {
+        sidebar.classList.remove('active');
+        document.body.classList.remove('sidebar-active');
+    });
+
+    // Close sidebar when clicking outside
+    document.addEventListener('click', function (event) {
+        if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
+            sidebar.classList.remove('active');
+            document.body.classList.remove('sidebar-active');
+        }
+    });
+
+    // Handle dropdown toggles in sidebar
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            const dropdownMenu = this.nextElementSibling;
+            dropdownMenu.classList.toggle('show');
+        });
+    });
 }
 
 // Load Apps from API
 async function loadApps() {
     const loading = document.getElementById('loading');
     const appList = document.getElementById('appList');
-    
+
     loading.classList.remove('hidden');
     appList.innerHTML = '';
 
     try {
         // Try to fetch real data first, fallback to static if fails
         let response = await fetch(`${API_BASE_URL}?action=getAllApps&real=true`);
-        
+
         // If real data fails, try static data
         if (!response.ok) {
             response = await fetch(`${API_BASE_URL}?action=getAllApps`);
         }
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         // Show data source info
         if (data.data_source === 'real') {
             console.log('✅ Menggunakan data real dari API eksternal');
         } else {
             console.log('ℹ️ Menggunakan data static (fallback)');
         }
-        
+
         if (data.success) {
             allApps = data.apps;
             filteredApps = allApps;
@@ -89,7 +124,7 @@ async function loadApps() {
 // Display Apps
 function displayApps(apps, containerId = 'appList') {
     const container = document.getElementById(containerId);
-    
+
     if (apps.length === 0) {
         container.innerHTML = '<div class="no-results">Tidak ada aplikasi yang ditemukan</div>';
         return;
@@ -135,7 +170,7 @@ function displayApps(apps, containerId = 'appList') {
             </div>
         </div>
     `}).join('');
-    
+
     if (window.updateFavoriteIcons) {
         window.updateFavoriteIcons();
     }
@@ -144,31 +179,31 @@ function displayApps(apps, containerId = 'appList') {
 // Show App Detail
 async function showAppDetail(appId) {
     currentAppId = appId; // Store for compare feature
-    
+
     // Hide all content sections
-    const contentSections = ['appList', 'dashboard', 'compareSection', 
+    const contentSections = ['appList', 'dashboard', 'compareSection',
         'problemDefinition', 'systemDesign', 'insights', 'ethics', 'about'];
     contentSections.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
-    
+
     const appDetail = document.getElementById('appDetail');
     const detailContent = document.getElementById('detailContent');
     appDetail.classList.remove('hidden');
-    
+
     const loading = document.getElementById('loading');
     loading.classList.remove('hidden');
 
     try {
         const response = await fetch(`${API_BASE_URL}?action=getAppDetail&id=${appId}`);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             const app = data.app;
             detailContent.innerHTML = generateDetailHTML(app);
@@ -274,7 +309,7 @@ function generateDetailHTML(app) {
 function closeDetail() {
     const appDetail = document.getElementById('appDetail');
     const appList = document.getElementById('appList');
-    
+
     appDetail.classList.add('hidden');
     appList.classList.remove('hidden');
     currentAppId = null;
@@ -283,16 +318,16 @@ function closeDetail() {
 // Handle Search
 function handleSearch() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    
+
     if (searchTerm === '') {
         filteredApps = allApps;
     } else {
-        filteredApps = allApps.filter(app => 
+        filteredApps = allApps.filter(app =>
             app.name.toLowerCase().includes(searchTerm) ||
             getCategoryLabel(app.category).toLowerCase().includes(searchTerm)
         );
     }
-    
+
     displayApps(filteredApps);
 }
 
@@ -301,21 +336,21 @@ function handleFilter() {
     const category = document.getElementById('categoryFilter').value;
     const minScore = parseFloat(document.getElementById('scoreFilter').value);
     const sortBy = document.getElementById('sortFilter').value;
-    
+
     // Filter by category
     if (category === 'all') {
         filteredApps = [...allApps];
     } else {
         filteredApps = allApps.filter(app => app.category === category);
     }
-    
+
     // Filter by minimum score
     if (minScore > 0) {
         filteredApps = filteredApps.filter(app => app.overall_score >= minScore);
     }
-    
+
     // Sort
-    switch(sortBy) {
+    switch (sortBy) {
         case 'name':
             filteredApps.sort((a, b) => a.name.localeCompare(b.name));
             break;
@@ -333,7 +368,7 @@ function handleFilter() {
             });
             break;
     }
-    
+
     displayApps(filteredApps);
 }
 
@@ -342,20 +377,20 @@ function generateStars(score) {
     const fullStars = Math.floor(score);
     const hasHalfStar = score % 1 >= 0.5;
     let stars = '';
-    
+
     for (let i = 0; i < fullStars; i++) {
         stars += '<i class="fas fa-star"></i>';
     }
-    
+
     if (hasHalfStar) {
         stars += '<i class="fas fa-star-half-alt"></i>';
     }
-    
+
     const emptyStars = 5 - Math.ceil(score);
     for (let i = 0; i < emptyStars; i++) {
         stars += '<i class="far fa-star"></i>';
     }
-    
+
     return stars;
 }
 

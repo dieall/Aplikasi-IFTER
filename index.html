@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,69 +10,86 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
+
 <body>
+    <nav class="main-nav">
+        <button id="sidebarToggle" class="sidebar-toggle" aria-label="Buka menu aksi">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Menu Aksi</h3>
+                <button id="closeSidebar" class="close-sidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <button class="sidebar-btn" onclick="showDashboard()">
+                    <i class="fas fa-chart-bar"></i> Dashboard
+                </button>
+                <button class="sidebar-btn" onclick="showCompare()">
+                    <i class="fas fa-balance-scale"></i> Bandingkan
+                </button>
+                <button class="sidebar-btn" onclick="showFavorites()">
+                    <i class="fas fa-heart"></i> Favorit <span id="favoriteCount" class="badge">0</span>
+                </button>
+                <button class="sidebar-btn" onclick="showRecentViews()">
+                    <i class="fas fa-history"></i> Terakhir Dilihat
+                </button>
+                <div class="sidebar-dropdown">
+                    <button class="sidebar-btn dropdown-toggle">
+                        <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="#" onclick="exportToPDF(); return false;"><i class="fas fa-file-pdf"></i> Export
+                            PDF</a>
+                        <a href="#" onclick="exportToExcel(); return false;"><i class="fas fa-file-excel"></i> Export
+                            Excel</a>
+                        <a href="#" onclick="exportToCSV(); return false;"><i class="fas fa-file-csv"></i> Export
+                            CSV</a>
+                    </div>
+                </div>
+                <button class="sidebar-btn" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+            </div>
+        </div>
+        <button class="nav-btn active" onclick="showHome()">
+            <i class="fas fa-home"></i> Beranda
+        </button>
+        <button class="nav-btn highlight" onclick="showSymptomChecker()">
+            <i class="fas fa-stethoscope"></i> Cek Gejala & Rekomendasi
+        </button>
+        <button class="nav-btn" onclick="showProblemDefinition()">
+            <i class="fas fa-question-circle"></i> Problem Definition
+        </button>
+        <button class="nav-btn" onclick="showSystemDesign()">
+            <i class="fas fa-sitemap"></i> System Design
+        </button>
+        <button class="nav-btn" onclick="showInsights()">
+            <i class="fas fa-lightbulb"></i> Insights & Analysis
+        </button>
+        <button class="nav-btn" onclick="showEthics()">
+            <i class="fas fa-shield-alt"></i> Ethics & Governance
+        </button>
+        <button class="nav-btn" onclick="showAbout()">
+            <i class="fas fa-info-circle"></i> About
+        </button>
+        <button id="darkModeToggle" class="dark-mode-btn" title="Toggle Dark Mode">
+            <i class="fas fa-moon"></i>
+        </button>
+    </nav>
+
     <div class="container">
         <header>
             <div class="header-top">
                 <h1><i class="fas fa-mobile-alt"></i> Evaluasi Aplikasi Kesehatan Konsumen</h1>
-                <button id="darkModeToggle" class="dark-mode-btn" title="Toggle Dark Mode">
-                    <i class="fas fa-moon"></i>
-                </button>
             </div>
             <p class="subtitle">Evaluasi kualitas, privasi, dan literasi pengguna aplikasi kesehatan seluler</p>
         </header>
 
-        <nav class="main-nav">
-            <button class="nav-btn active" onclick="showHome()">
-                <i class="fas fa-home"></i> Beranda
-            </button>
-            <button class="nav-btn highlight" onclick="showSymptomChecker()">
-                <i class="fas fa-stethoscope"></i> Cek Gejala & Rekomendasi
-            </button>
-            <button class="nav-btn" onclick="showProblemDefinition()">
-                <i class="fas fa-question-circle"></i> Problem Definition
-            </button>
-            <button class="nav-btn" onclick="showSystemDesign()">
-                <i class="fas fa-sitemap"></i> System Design
-            </button>
-            <button class="nav-btn" onclick="showInsights()">
-                <i class="fas fa-lightbulb"></i> Insights & Analysis
-            </button>
-            <button class="nav-btn" onclick="showEthics()">
-                <i class="fas fa-shield-alt"></i> Ethics & Governance
-            </button>
-            <button class="nav-btn" onclick="showAbout()">
-                <i class="fas fa-info-circle"></i> About
-            </button>
-        </nav>
 
-        <div class="action-buttons">
-            <button class="action-btn" onclick="showDashboard()">
-                <i class="fas fa-chart-bar"></i> Dashboard
-            </button>
-            <button class="action-btn" onclick="showCompare()">
-                <i class="fas fa-balance-scale"></i> Bandingkan
-            </button>
-            <button class="action-btn" onclick="showFavorites()">
-                <i class="fas fa-heart"></i> Favorit <span id="favoriteCount" class="badge">0</span>
-            </button>
-            <button class="action-btn" onclick="showRecentViews()">
-                <i class="fas fa-history"></i> Terakhir Dilihat
-            </button>
-            <div class="dropdown">
-                <button class="action-btn dropdown-toggle">
-                    <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down"></i>
-                </button>
-                <div class="dropdown-menu">
-                    <a href="#" onclick="exportToPDF(); return false;"><i class="fas fa-file-pdf"></i> Export PDF</a>
-                    <a href="#" onclick="exportToExcel(); return false;"><i class="fas fa-file-excel"></i> Export Excel</a>
-                    <a href="#" onclick="exportToCSV(); return false;"><i class="fas fa-file-csv"></i> Export CSV</a>
-                </div>
-            </div>
-            <button class="action-btn" onclick="window.print()">
-                <i class="fas fa-print"></i> Print
-            </button>
-        </div>
+
 
         <div class="search-section">
             <div class="search-box">
@@ -92,6 +110,18 @@
                 <button class="quick-filter-btn" onclick="quickFilter('nutrition')">
                     <i class="fas fa-apple-alt"></i> Nutrisi
                 </button>
+                <button class="quick-filter-btn" onclick="quickFilter('sleep')">
+                    <i class="fas fa-bed"></i> Sleep Monitor
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('pregnancy')">
+                    <i class="fas fa-baby"></i> Kesehatan Ibu & Anak
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('chronic')">
+                    <i class="fas fa-heartbeat"></i> Penyakit Kronis
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('elderly')">
+                    <i class="fas fa-walking"></i> Kesehatan Lansia
+                </button>
             </div>
         </div>
 
@@ -104,6 +134,10 @@
                     <option value="fitness">Fitness & Wellness</option>
                     <option value="mental">Kesehatan Mental</option>
                     <option value="nutrition">Nutrisi</option>
+                    <option value="sleep">Sleep Monitor</option>
+                    <option value="pregnancy">Kesehatan Ibu & Anak</option>
+                    <option value="chronic">Penyakit Kronis</option>
+                    <option value="elderly">Kesehatan Lansia</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -202,14 +236,20 @@
             <h2><i class="fas fa-question-circle"></i> Problem Definition & Relevance</h2>
             <div class="content-card">
                 <h3>Health Informatics Challenge</h3>
-                <p>Dengan meningkatnya penggunaan aplikasi kesehatan seluler di Indonesia, muncul tantangan penting dalam memastikan kualitas, keamanan privasi, dan literasi pengguna terhadap aplikasi-aplikasi tersebut.</p>
-                
+                <p>Dengan meningkatnya penggunaan aplikasi kesehatan seluler di Indonesia, muncul tantangan penting
+                    dalam memastikan kualitas, keamanan privasi, dan literasi pengguna terhadap aplikasi-aplikasi
+                    tersebut.</p>
+
                 <h4>Masalah yang Dihadapi:</h4>
                 <ul class="problem-list">
-                    <li><strong>Kualitas Aplikasi:</strong> Tidak semua aplikasi kesehatan memiliki standar kualitas yang sama, baik dari segi fitur, akurasi informasi, maupun user experience.</li>
-                    <li><strong>Privasi & Keamanan Data:</strong> Banyak aplikasi kesehatan mengumpulkan data sensitif pengguna tanpa transparansi yang jelas tentang penggunaan dan perlindungan data tersebut.</li>
-                    <li><strong>Literasi Pengguna:</strong> Pengguna seringkali tidak memahami informasi kesehatan yang disajikan atau tidak menyadari implikasi privasi dari penggunaan aplikasi.</li>
-                    <li><strong>Kurangnya Evaluasi Komprehensif:</strong> Tidak ada sistem evaluasi terpusat yang membantu konsumen memilih aplikasi kesehatan yang tepat sesuai kebutuhan mereka.</li>
+                    <li><strong>Kualitas Aplikasi:</strong> Tidak semua aplikasi kesehatan memiliki standar kualitas
+                        yang sama, baik dari segi fitur, akurasi informasi, maupun user experience.</li>
+                    <li><strong>Privasi & Keamanan Data:</strong> Banyak aplikasi kesehatan mengumpulkan data sensitif
+                        pengguna tanpa transparansi yang jelas tentang penggunaan dan perlindungan data tersebut.</li>
+                    <li><strong>Literasi Pengguna:</strong> Pengguna seringkali tidak memahami informasi kesehatan yang
+                        disajikan atau tidak menyadari implikasi privasi dari penggunaan aplikasi.</li>
+                    <li><strong>Kurangnya Evaluasi Komprehensif:</strong> Tidak ada sistem evaluasi terpusat yang
+                        membantu konsumen memilih aplikasi kesehatan yang tepat sesuai kebutuhan mereka.</li>
                 </ul>
 
                 <h4>Relevansi dengan Health Informatics:</h4>
@@ -217,22 +257,26 @@
                     <div class="relevance-item">
                         <i class="fas fa-user-md"></i>
                         <h5>Consumer Health Informatics</h5>
-                        <p>Membantu konsumen membuat keputusan informasi kesehatan yang lebih baik melalui evaluasi aplikasi kesehatan.</p>
+                        <p>Membantu konsumen membuat keputusan informasi kesehatan yang lebih baik melalui evaluasi
+                            aplikasi kesehatan.</p>
                     </div>
                     <div class="relevance-item">
                         <i class="fas fa-shield-alt"></i>
                         <h5>Health Information Privacy</h5>
-                        <p>Meningkatkan kesadaran tentang pentingnya privasi data kesehatan dan transparansi dalam penggunaan data.</p>
+                        <p>Meningkatkan kesadaran tentang pentingnya privasi data kesehatan dan transparansi dalam
+                            penggunaan data.</p>
                     </div>
                     <div class="relevance-item">
                         <i class="fas fa-graduation-cap"></i>
                         <h5>Health Literacy</h5>
-                        <p>Meningkatkan literasi kesehatan digital pengguna melalui evaluasi dan rekomendasi aplikasi yang informatif.</p>
+                        <p>Meningkatkan literasi kesehatan digital pengguna melalui evaluasi dan rekomendasi aplikasi
+                            yang informatif.</p>
                     </div>
                     <div class="relevance-item">
                         <i class="fas fa-chart-line"></i>
                         <h5>Quality Assessment</h5>
-                        <p>Menyediakan framework evaluasi yang sistematis untuk mengukur kualitas aplikasi kesehatan seluler.</p>
+                        <p>Menyediakan framework evaluasi yang sistematis untuk mengukur kualitas aplikasi kesehatan
+                            seluler.</p>
                     </div>
                 </div>
 
@@ -369,10 +413,11 @@
             <h2><i class="fas fa-shield-alt"></i> Ethical & Governance Reflection</h2>
             <div class="content-card">
                 <h3>Privacy & Security Considerations</h3>
-                
+
                 <h4>1. Data Privacy</h4>
                 <div class="ethics-section">
-                    <p><strong>Prinsip:</strong> Sistem ini tidak mengumpulkan data pribadi pengguna. Semua data evaluasi adalah data publik tentang aplikasi kesehatan, bukan data pengguna.</p>
+                    <p><strong>Prinsip:</strong> Sistem ini tidak mengumpulkan data pribadi pengguna. Semua data
+                        evaluasi adalah data publik tentang aplikasi kesehatan, bukan data pengguna.</p>
                     <ul>
                         <li>Tidak ada tracking atau analytics yang mengumpulkan data pribadi</li>
                         <li>Tidak ada cookies yang menyimpan informasi sensitif</li>
@@ -383,9 +428,11 @@
                 <h4>2. Security Measures</h4>
                 <div class="ethics-section">
                     <ul>
-                        <li><strong>Input Validation:</strong> Semua input dari user divalidasi untuk mencegah injection attacks</li>
+                        <li><strong>Input Validation:</strong> Semua input dari user divalidasi untuk mencegah injection
+                            attacks</li>
                         <li><strong>CORS Policy:</strong> CORS diaktifkan dengan kontrol yang tepat</li>
-                        <li><strong>Error Handling:</strong> Error messages tidak mengekspos informasi sensitif sistem</li>
+                        <li><strong>Error Handling:</strong> Error messages tidak mengekspos informasi sensitif sistem
+                        </li>
                         <li><strong>HTTPS:</strong> Direkomendasikan menggunakan HTTPS di production</li>
                     </ul>
                 </div>
@@ -445,7 +492,9 @@
             <h2><i class="fas fa-info-circle"></i> About</h2>
             <div class="content-card">
                 <h3>Tentang Aplikasi</h3>
-                <p>Aplikasi Evaluasi Aplikasi Kesehatan Konsumen adalah sistem evaluasi komprehensif yang dirancang untuk membantu konsumen dalam memilih aplikasi kesehatan seluler yang tepat berdasarkan kualitas, privasi, dan literasi pengguna.</p>
+                <p>Aplikasi Evaluasi Aplikasi Kesehatan Konsumen adalah sistem evaluasi komprehensif yang dirancang
+                    untuk membantu konsumen dalam memilih aplikasi kesehatan seluler yang tepat berdasarkan kualitas,
+                    privasi, dan literasi pengguna.</p>
 
                 <h3>Tim Pengembang</h3>
                 <div class="team-info">
@@ -480,33 +529,39 @@
         <div id="toastContainer" class="toast-container"></div>
 
         <!-- Symptom Checker & Recommendation Section -->
+        <!-- MAIN CONTENT -->
         <div id="symptomChecker" class="content-section hidden">
             <h2><i class="fas fa-stethoscope"></i> Cek Gejala & Rekomendasi Aplikasi</h2>
             <div class="content-card">
                 <div class="symptom-intro">
-                    <p>Masukkan gejala yang Anda rasakan, dan kami akan merekomendasikan aplikasi kesehatan yang sesuai untuk membantu Anda.</p>
+                    <p>Masukkan gejala yang Anda rasakan, dan kami akan merekomendasikan aplikasi kesehatan yang sesuai
+                        untuk membantu Anda.</p>
                 </div>
 
                 <div class="symptom-input-section">
                     <label for="symptomInput">
                         <i class="fas fa-notes-medical"></i> Gejala yang Saya Rasakan:
                     </label>
-                    <textarea 
-                        id="symptomInput" 
-                        class="symptom-input" 
+                    <textarea id="symptomInput" class="symptom-input"
                         placeholder="Contoh: Saya mengalami sakit kepala, demam, dan batuk. Atau: Saya merasa cemas dan sulit tidur..."
-                        rows="4"
-                    ></textarea>
+                        rows="4"></textarea>
                     <div class="symptom-examples">
                         <p><strong>Contoh gejala:</strong></p>
                         <div class="example-tags">
-                            <span class="example-tag" onclick="fillSymptom('Sakit kepala, demam, batuk')">Sakit kepala, demam, batuk</span>
-                            <span class="example-tag" onclick="fillSymptom('Cemas, sulit tidur, stress')">Cemas, sulit tidur, stress</span>
-                            <span class="example-tag" onclick="fillSymptom('Nyeri perut, mual, muntah')">Nyeri perut, mual, muntah</span>
-                            <span class="example-tag" onclick="fillSymptom('Sesak napas, nyeri dada')">Sesak napas, nyeri dada</span>
-                            <span class="example-tag" onclick="fillSymptom('Ingin konsultasi dokter umum')">Ingin konsultasi dokter umum</span>
-                            <span class="example-tag" onclick="fillSymptom('Ingin tracking nutrisi dan diet')">Ingin tracking nutrisi dan diet</span>
-                            <span class="example-tag" onclick="fillSymptom('Ingin olahraga dan fitness')">Ingin olahraga dan fitness</span>
+                            <span class="example-tag" onclick="fillSymptom('Sakit kepala, demam, batuk')">Sakit kepala,
+                                demam, batuk</span>
+                            <span class="example-tag" onclick="fillSymptom('Cemas, sulit tidur, stress')">Cemas, sulit
+                                tidur, stress</span>
+                            <span class="example-tag" onclick="fillSymptom('Nyeri perut, mual, muntah')">Nyeri perut,
+                                mual, muntah</span>
+                            <span class="example-tag" onclick="fillSymptom('Sesak napas, nyeri dada')">Sesak napas,
+                                nyeri dada</span>
+                            <span class="example-tag" onclick="fillSymptom('Ingin konsultasi dokter umum')">Ingin
+                                konsultasi dokter umum</span>
+                            <span class="example-tag" onclick="fillSymptom('Ingin tracking nutrisi dan diet')">Ingin
+                                tracking nutrisi dan diet</span>
+                            <span class="example-tag" onclick="fillSymptom('Ingin olahraga dan fitness')">Ingin olahraga
+                                dan fitness</span>
                         </div>
                     </div>
                     <button class="recommend-btn" onclick="getRecommendations()">
@@ -520,7 +575,9 @@
                 </div>
 
                 <div class="disclaimer">
-                    <p><i class="fas fa-exclamation-triangle"></i> <strong>Peringatan:</strong> Rekomendasi ini hanya sebagai panduan. Untuk gejala serius atau darurat, segera hubungi layanan darurat medis atau kunjungi fasilitas kesehatan terdekat.</p>
+                    <p><i class="fas fa-exclamation-triangle"></i> <strong>Peringatan:</strong> Rekomendasi ini hanya
+                        sebagai panduan. Untuk gejala serius atau darurat, segera hubungi layanan darurat medis atau
+                        kunjungi fasilitas kesehatan terdekat.</p>
                 </div>
             </div>
             <button class="back-btn" onclick="showHome()">
@@ -554,7 +611,8 @@
                     <i class="fas fa-arrow-left"></i> Kembali
                 </button>
                 <div class="detail-actions-group">
-                    <button class="action-icon-btn" onclick="toggleFavorite()" id="favoriteBtn" title="Tambahkan ke Favorit">
+                    <button class="action-icon-btn" onclick="toggleFavorite()" id="favoriteBtn"
+                        title="Tambahkan ke Favorit">
                         <i class="far fa-heart"></i>
                     </button>
                     <button class="action-icon-btn" onclick="shareApp()" title="Bagikan">
@@ -574,5 +632,5 @@
     <script src="assets/js/advanced-features.js"></script>
     <script src="assets/js/symptom-checker.js"></script>
 </body>
-</html>
 
+</html>
