@@ -45,12 +45,86 @@ const symptomKeywords = {
     }
 };
 
+// --- Knowledge base: gejala -> possible diseases, descriptions, initial handling, and recommended meds ---
+const gejalaData = {
+    "batuk": { "flu": 0.6, "tbc": 0.8 },
+    "demam": { "flu": 0.7, "dbd": 0.9 },
+    "sakit kepala": { "flu": 0.5, "migraine": 0.9 },
+    "pilek": { "flu": 0.9 },
+    "mimisan": { "dbd": 0.5 },
+    "berkeringat malam": { "tbc": 0.7 },
+    "mual": { "dbd": 0.6 },
+    "pusing": { "migraine": 0.7 },
+    "nyeri perut": { "maag": 0.9 }
+};
+
+const deskripsiPenyakit = {
+    "flu": "Infeksi virus yang menyerang saluran pernapasan.",
+    "tbc": "Infeksi bakteri Mycobacterium tuberculosis.",
+    "dbd": "Infeksi virus dengue yang ditularkan oleh nyamuk.",
+    "migraine": "Sakit kepala berulang yang bisa disertai mual.",
+    "maag": "Iritasi atau luka pada lambung."
+};
+
+const penangananAwal = {
+    "flu": "Istirahat cukup dan minum air hangat.",
+    "tbc": "Segera konsultasikan ke dokter untuk pengobatan jangka panjang.",
+    "dbd": "Periksa trombosit dan konsultasikan ke rumah sakit.",
+    "migraine": "Hindari stres dan konsumsi obat pereda nyeri.",
+    "maag": "Hindari makanan pedas, asam, dan makan teratur."
+};
+
+const rekomendasiObat = {
+    "flu": "Paracetamol, dekongestan, antihistamin.",
+    "tbc": "Rifampisin, isoniazid (sesuai resep dokter).",
+    "dbd": "Paracetamol (bukan aspirin), cairan oralit.",
+    "migraine": "Ibuprofen, sumatriptan.",
+    "maag": "Antasida, ranitidine, omeprazole."
+};
+
+function recommendMedications(symptomText, analysis) {
+    const text = (symptomText || '').toLowerCase();
+    const matchedSymptoms = [];
+
+    // Find known symptom tokens in the text
+    Object.keys(gejalaData).forEach(sym => {
+        if (text.includes(sym)) matchedSymptoms.push(sym);
+    });
+
+    const diseaseScores = {};
+    matchedSymptoms.forEach(sym => {
+        const map = gejalaData[sym];
+        Object.entries(map).forEach(([disease, score]) => {
+            diseaseScores[disease] = (diseaseScores[disease] || 0) + score;
+        });
+    });
+
+    // Sort diseases by score
+    const sortedDiseases = Object.keys(diseaseScores).sort((a, b) => diseaseScores[b] - diseaseScores[a]);
+
+    // Collect recommended meds and initial handling for top diseases
+    const meds = [];
+    const penanganan = [];
+    sortedDiseases.slice(0, 3).forEach(d => {
+        if (rekomendasiObat[d]) meds.push(`${d}: ${rekomendasiObat[d]}`);
+        if (penangananAwal[d]) penanganan.push(`${d}: ${penangananAwal[d]}`);
+    });
+
+    return {
+        matchedSymptoms,
+        diseaseScores,
+        sortedDiseases,
+        meds,
+        penanganan
+    };
+}
+
 // Show Symptom Checker
 function showSymptomChecker() {
     hideAllSections();
     document.getElementById('symptomChecker').classList.remove('hidden');
     updateNavActive('symptom');
-    
+
     // Clear previous results
     document.getElementById('recommendationResult').classList.add('hidden');
     document.getElementById('symptomInput').value = '';
@@ -67,32 +141,32 @@ async function getRecommendations() {
     const symptomText = document.getElementById('symptomInput').value.trim().toLowerCase();
     const resultDiv = document.getElementById('recommendationResult');
     const contentDiv = document.getElementById('recommendationContent');
-    
+
     if (!symptomText) {
         showToast('Silakan masukkan gejala yang Anda rasakan', 'warning');
         return;
     }
-    
+
     // Show loading
     contentDiv.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Menganalisis gejala...</div>';
     resultDiv.classList.remove('hidden');
-    
+
     // Scroll to results
     resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    
+
     // Analyze symptoms
     const analysis = analyzeSymptoms(symptomText);
-    
+
     // Get recommended apps
     if (!allApps || allApps.length === 0) {
         await loadApps();
     }
-    
+
     const recommendations = getRecommendedApps(analysis, allApps);
-    
+
     // Display recommendations
     displayRecommendations(recommendations, symptomText, analysis);
-    
+
     showToast(`Ditemukan ${recommendations.length} rekomendasi aplikasi`, 'success');
 }
 
@@ -104,19 +178,19 @@ function analyzeSymptoms(symptomText) {
         urgency: 'normal', // normal, moderate, high
         confidence: 0
     };
-    
+
     // Check each category
     for (const [category, config] of Object.entries(symptomKeywords)) {
         let matchCount = 0;
         const matched = [];
-        
+
         for (const keyword of config.keywords) {
             if (symptomText.includes(keyword.toLowerCase())) {
                 matchCount++;
                 matched.push(keyword);
             }
         }
-        
+
         if (matchCount > 0) {
             analysis.categories.push({
                 category: category,
@@ -127,10 +201,10 @@ function analyzeSymptoms(symptomText) {
             analysis.matchedKeywords[category] = matched;
         }
     }
-    
+
     // Sort by score
     analysis.categories.sort((a, b) => b.score - a.score);
-    
+
     // Determine urgency
     const urgentKeywords = ['sesak napas', 'nyeri dada', 'darurat', 'patah', 'cedera serius', 'muntah darah'];
     if (urgentKeywords.some(kw => symptomText.includes(kw))) {
@@ -138,11 +212,11 @@ function analyzeSymptoms(symptomText) {
     } else if (analysis.categories.length > 0 && analysis.categories[0].score >= 3) {
         analysis.urgency = 'moderate';
     }
-    
+
     // Calculate confidence
     const totalMatches = analysis.categories.reduce((sum, cat) => sum + cat.matchCount, 0);
     analysis.confidence = Math.min(100, (totalMatches / 5) * 100);
-    
+
     return analysis;
 }
 
@@ -155,35 +229,35 @@ function getRecommendedApps(analysis, apps) {
             .sort((a, b) => b.overall_score - a.overall_score)
             .slice(0, 3);
     }
-    
+
     const recommendations = [];
     const categoryScores = {};
-    
+
     // Calculate scores for each category
     analysis.categories.forEach(cat => {
         categoryScores[cat.category] = cat.score;
     });
-    
+
     // Score each app
     apps.forEach(app => {
         let score = 0;
         let matchReason = '';
-        
+
         // Base score from category match
         if (categoryScores[app.category]) {
             score = categoryScores[app.category] * 10;
             matchReason = `Cocok untuk gejala ${getCategoryLabel(app.category).toLowerCase()}`;
         }
-        
+
         // Bonus for high overall score
         score += app.overall_score * 5;
-        
+
         // Bonus for high quality score
         score += app.quality_score * 3;
-        
+
         // Bonus for high usability (important for users in distress)
         score += app.usability_score * 2;
-        
+
         if (score > 0) {
             recommendations.push({
                 app: app,
@@ -194,19 +268,19 @@ function getRecommendedApps(analysis, apps) {
             });
         }
     });
-    
+
     // Sort by score
     recommendations.sort((a, b) => b.score - a.score);
-    
+
     // Return only the top 1 recommendation (most relevant)
     // Filter to only show apps that match the category
     const topMatches = recommendations.filter(rec => rec.isTopMatch);
-    
+
     if (topMatches.length > 0) {
         // Return only the best match
         return [topMatches[0]];
     }
-    
+
     // If no category match, return top 1 overall
     return recommendations.slice(0, 1);
 }
@@ -214,7 +288,7 @@ function getRecommendedApps(analysis, apps) {
 // Display recommendations
 function displayRecommendations(recommendations, symptomText, analysis) {
     const contentDiv = document.getElementById('recommendationContent');
-    
+
     if (recommendations.length === 0) {
         contentDiv.innerHTML = `
             <div class="no-results">
@@ -224,7 +298,7 @@ function displayRecommendations(recommendations, symptomText, analysis) {
         `;
         return;
     }
-    
+
     // Urgency warning
     let urgencyWarning = '';
     if (analysis.urgency === 'high') {
@@ -236,24 +310,63 @@ function displayRecommendations(recommendations, symptomText, analysis) {
             </div>
         `;
     }
-    
+
     // Analysis summary
     const matchedCategories = analysis.categories.map(cat => getCategoryLabel(cat.category)).join(', ');
-    
+
     // Get top charts for matched categories
     const topCharts = getTopChartsForCategories(analysis.categories.map(cat => cat.category));
-    
+
     let html = urgencyWarning;
-    
-    html += `
+
+    // Build analysis summary and include KB-based medication suggestions
+    try {
+        const medsRes = recommendMedications(symptomText, analysis);
+
+        html += `
+        <div class="analysis-summary">
+            <h4><i class="fas fa-chart-line"></i> Analisis Gejala</h4>
+            <p><strong>Gejala yang dimasukkan:</strong> "${symptomText}"</p>
+            <p><strong>Kategori yang cocok:</strong> ${matchedCategories || 'Konsultasi Umum'}</p>
+            <p><strong>Tingkat kepercayaan:</strong> ${Math.round(analysis.confidence)}%</p>
+
+            ${medsRes.meds && medsRes.meds.length > 0 ? `
+                <div class="kb-medications">
+                    <p><strong>Rekomendasi Obat (berdasarkan gejala):</strong></p>
+                    <ul>
+                        ${medsRes.meds.map(m => `<li>${m}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : `
+                <div class="kb-medications">
+                    <p><strong>Rekomendasi Obat:</strong> Tidak ada rekomendasi obat otomatis — konsultasikan ke penyedia layanan kesehatan.</p>
+                </div>
+            `}
+
+            ${medsRes.penanganan && medsRes.penanganan.length > 0 ? `
+                <div class="kb-penanganan">
+                    <p><strong>Penanganan awal (ringkas):</strong></p>
+                    <ul>
+                        ${medsRes.penanganan.map(p => `<li>${p}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+
+        </div>
+    `;
+    } catch (e) {
+        console.warn('KB recommend error', e);
+        // Fallback to original summary without KB
+        html += `
         <div class="analysis-summary">
             <h4><i class="fas fa-chart-line"></i> Analisis Gejala</h4>
             <p><strong>Gejala yang dimasukkan:</strong> "${symptomText}"</p>
             <p><strong>Kategori yang cocok:</strong> ${matchedCategories || 'Konsultasi Umum'}</p>
             <p><strong>Tingkat kepercayaan:</strong> ${Math.round(analysis.confidence)}%</p>
         </div>
-    `;
-    
+        `;
+    }
+
     // Trust Indicators
     const totalApps = allApps.length;
     const avgRating = allApps.reduce((sum, app) => sum + app.overall_score, 0) / totalApps;
@@ -261,7 +374,7 @@ function displayRecommendations(recommendations, symptomText, analysis) {
         const users = app.active_users.match(/(\d+)/);
         return sum + (users ? parseInt(users[1]) : 0);
     }, 0);
-    
+
     html += `
         <div class="trust-indicators">
             <div class="trust-item">
@@ -286,7 +399,7 @@ function displayRecommendations(recommendations, symptomText, analysis) {
             </div>
         </div>
     `;
-    
+
     // Top Charts Section
     if (topCharts.length > 0) {
         html += `
@@ -325,12 +438,12 @@ function displayRecommendations(recommendations, symptomText, analysis) {
             </div>
         `;
     }
-    
+
     // Recommendations - Only show the top 1 recommendation
     if (recommendations.length > 0) {
         const rec = recommendations[0];
         const app = rec.app;
-        
+
         html += '<div class="recommendations-list">';
         html += `
             <div class="recommendation-card recommended">
@@ -379,23 +492,23 @@ function displayRecommendations(recommendations, symptomText, analysis) {
         `;
         html += '</div>';
     }
-    
+
     contentDiv.innerHTML = html;
 }
 
 // Get top charts for categories
 function getTopChartsForCategories(categories) {
     if (!allApps || allApps.length === 0) return [];
-    
+
     const charts = [];
     const uniqueCategories = [...new Set(categories)];
-    
+
     uniqueCategories.forEach(category => {
         const categoryApps = allApps
             .filter(app => app.category === category)
             .sort((a, b) => b.overall_score - a.overall_score)
             .slice(0, 5); // Top 5 per category
-        
+
         if (categoryApps.length > 0) {
             charts.push({
                 category: category,
@@ -403,19 +516,19 @@ function getTopChartsForCategories(categories) {
             });
         }
     });
-    
+
     // If no specific category matched, show overall top apps
     if (charts.length === 0) {
         const topApps = allApps
             .sort((a, b) => b.overall_score - a.overall_score)
             .slice(0, 5);
-        
+
         charts.push({
             category: 'all',
             apps: topApps
         });
     }
-    
+
     return charts;
 }
 
@@ -436,59 +549,59 @@ function generateStars(score) {
     const fullStars = Math.floor(score);
     const hasHalfStar = score % 1 >= 0.5;
     let stars = '';
-    
+
     for (let i = 0; i < fullStars; i++) {
         stars += '<i class="fas fa-star"></i>';
     }
-    
+
     if (hasHalfStar && fullStars < 5) {
         stars += '<i class="fas fa-star-half-alt"></i>';
     }
-    
+
     const emptyStars = 5 - Math.ceil(score);
     for (let i = 0; i < emptyStars; i++) {
         stars += '<i class="far fa-star"></i>';
     }
-    
+
     return stars;
 }
 
 // Get recommendation reason
 function getRecommendationReason(app, analysis) {
     const reasons = [];
-    
+
     // Category match reason
     const categoryMatch = analysis.categories.find(cat => cat.category === app.category);
     if (categoryMatch) {
         reasons.push(`Aplikasi ini khusus untuk ${getCategoryLabel(app.category).toLowerCase()} dan cocok dengan gejala yang Anda sebutkan`);
     }
-    
+
     // Quality reason
     if (app.quality_score >= 4.5) {
         reasons.push('memiliki kualitas yang sangat baik');
     } else if (app.quality_score >= 4.0) {
         reasons.push('memiliki kualitas yang baik');
     }
-    
+
     // Usability reason
     if (app.usability_score >= 4.5) {
         reasons.push('sangat mudah digunakan');
     }
-    
+
     // Privacy reason
     if (app.privacy_score >= 4.0) {
         reasons.push('memiliki privasi data yang terjamin');
     }
-    
+
     // User count reason
     if (app.active_users && app.active_users.includes('juta')) {
         reasons.push('digunakan oleh jutaan pengguna');
     }
-    
+
     if (reasons.length === 0) {
         return 'Aplikasi ini direkomendasikan berdasarkan evaluasi komprehensif.';
     }
-    
+
     return reasons.join(', ') + '.';
 }
 
@@ -498,12 +611,12 @@ function addToCompareFromRecommendation(appId) {
     if (!window.compareApps) {
         window.compareApps = [];
     }
-    
+
     if (window.compareApps.length < 2) {
         if (!window.compareApps.includes(appId)) {
             window.compareApps.push(appId);
             showToast(`Aplikasi ditambahkan ke perbandingan (${window.compareApps.length}/2)`, 'success');
-            
+
             if (window.compareApps.length === 2) {
                 // Auto fill and show compare
                 setTimeout(() => {

@@ -13,6 +13,7 @@
     --card-bg: #ffffff;
     --text-primary: #1e293b;
     --text-secondary: #64748b;
+    --muted-color: #64748b;
     --border-color: #e2e8f0;
     --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -791,16 +792,33 @@ header h1 i {
 
 .charts-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 30px;
+    /* Increase minimum width slightly so charts appear larger on desktop */
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 24px;
     margin-bottom: 30px;
 }
 
 .chart-card {
     background: var(--bg-color);
-    padding: 25px;
-    border-radius: 15px;
+    padding: 20px;
+    border-radius: 12px;
     box-shadow: var(--shadow);
+    /* increase card height so chart visuals have more space */
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-card canvas {
+    width: 100% !important;
+    /* slightly larger visual height for readability */
+    height: 280px !important;
+}
+
+.chart-analysis {
+    margin-top: 10px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
 }
 
 .chart-card h3 {
@@ -881,6 +899,24 @@ header h1 i {
     color: var(--primary-color);
     margin-bottom: 15px;
     font-size: 1.5rem;
+}
+
+.compare-analysis {
+    margin-top: 18px;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.compare-analysis h4 {
+    margin: 8px 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.compare-analysis ul {
+    margin-left: 18px;
+    color: var(--text-secondary);
 }
 
 .compare-metric {

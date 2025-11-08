@@ -12,20 +12,20 @@ window.compareApps = compareApps;
 document.addEventListener('DOMContentLoaded', () => {
     const darkModeToggle = document.getElementById('darkModeToggle');
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
-    
+
     if (isDarkMode) {
         document.body.classList.add('dark-mode');
         darkModeToggle.innerHTML = '<i class="fas fa-sun"></i>';
     }
-    
+
     darkModeToggle.addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
         const isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem('darkMode', isDark);
-        darkModeToggle.innerHTML = isDark 
-            ? '<i class="fas fa-sun"></i>' 
+        darkModeToggle.innerHTML = isDark
+            ? '<i class="fas fa-sun"></i>'
             : '<i class="fas fa-moon"></i>';
-        
+
         // Update charts if they exist
         if (scoreChart) scoreChart.update();
         if (categoryChart) categoryChart.update();
@@ -55,7 +55,7 @@ async function showDashboard() {
 function closeDashboard() {
     const dashboard = document.getElementById('dashboard');
     const appList = document.getElementById('appList');
-    
+
     dashboard.classList.add('hidden');
     appList.classList.remove('hidden');
 }
@@ -64,26 +64,26 @@ async function loadDashboardStats() {
     if (!allApps || allApps.length === 0) {
         await loadApps();
     }
-    
+
     const apps = allApps;
-    
+
     // Calculate statistics
     const totalApps = apps.length;
     const avgScore = apps.reduce((sum, app) => sum + app.overall_score, 0) / totalApps;
     const avgPrivacy = apps.reduce((sum, app) => sum + app.privacy_score, 0) / totalApps;
-    
+
     // Calculate total users (extract numbers from strings like "20+ juta")
     const totalUsers = apps.reduce((sum, app) => {
         const users = app.active_users.match(/(\d+)/);
         return sum + (users ? parseInt(users[1]) : 0);
     }, 0);
-    
+
     // Update stat cards
     document.getElementById('totalApps').textContent = totalApps;
     document.getElementById('avgScore').textContent = avgScore.toFixed(2);
     document.getElementById('avgPrivacy').textContent = avgPrivacy.toFixed(2);
     document.getElementById('totalUsers').textContent = `${totalUsers}+ juta`;
-    
+
     // Create charts
     createScoreChart(apps);
     createCategoryChart(apps);
@@ -92,12 +92,12 @@ async function loadDashboardStats() {
 function createScoreChart(apps) {
     const ctx = document.getElementById('scoreChart');
     if (!ctx) return;
-    
+
     // Destroy existing chart
     if (scoreChart) {
         scoreChart.destroy();
     }
-    
+
     // Group by score ranges
     const ranges = {
         '4.5-5.0': 0,
@@ -106,7 +106,7 @@ function createScoreChart(apps) {
         '3.0-3.4': 0,
         '< 3.0': 0
     };
-    
+
     apps.forEach(app => {
         const score = app.overall_score;
         if (score >= 4.5) ranges['4.5-5.0']++;
@@ -115,11 +115,11 @@ function createScoreChart(apps) {
         else if (score >= 3.0) ranges['3.0-3.4']++;
         else ranges['< 3.0']++;
     });
-    
+
     const isDark = document.body.classList.contains('dark-mode');
     const textColor = isDark ? '#f1f5f9' : '#1e293b';
     const gridColor = isDark ? '#475569' : '#e2e8f0';
-    
+
     scoreChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -179,12 +179,12 @@ function createScoreChart(apps) {
 function createCategoryChart(apps) {
     const ctx = document.getElementById('categoryChart');
     if (!ctx) return;
-    
+
     // Destroy existing chart
     if (categoryChart) {
         categoryChart.destroy();
     }
-    
+
     // Group by category
     const categories = {};
     apps.forEach(app => {
@@ -195,17 +195,17 @@ function createCategoryChart(apps) {
         categories[cat].count++;
         categories[cat].totalScore += app.overall_score;
     });
-    
+
     // Calculate average scores
     const labels = Object.keys(categories);
-    const avgScores = labels.map(cat => 
+    const avgScores = labels.map(cat =>
         (categories[cat].totalScore / categories[cat].count).toFixed(2)
     );
-    
+
     const isDark = document.body.classList.contains('dark-mode');
     const textColor = isDark ? '#f1f5f9' : '#1e293b';
     const gridColor = isDark ? '#475569' : '#e2e8f0';
-    
+
     categoryChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -243,7 +243,7 @@ function createCategoryChart(apps) {
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             return `${context.label}: ${context.parsed} / 5.0`;
                         }
                     }
@@ -258,19 +258,19 @@ async function showCompare() {
     hideAllSections();
     const compareSection = document.getElementById('compareSection');
     compareSection.classList.remove('hidden');
-    
+
     // Populate select options
     if (!allApps || allApps.length === 0) {
         await loadApps();
     }
-    
+
     populateCompareSelects();
 }
 
 function closeCompare() {
     const compareSection = document.getElementById('compareSection');
     const appList = document.getElementById('appList');
-    
+
     compareSection.classList.add('hidden');
     appList.classList.remove('hidden');
 }
@@ -278,18 +278,18 @@ function closeCompare() {
 function populateCompareSelects() {
     const select1 = document.getElementById('compareApp1');
     const select2 = document.getElementById('compareApp2');
-    
+
     // Clear existing options
     select1.innerHTML = '<option value="">Pilih Aplikasi 1</option>';
     select2.innerHTML = '<option value="">Pilih Aplikasi 2</option>';
-    
+
     // Add options
     allApps.forEach(app => {
         const option1 = document.createElement('option');
         option1.value = app.id;
         option1.textContent = app.name;
         select1.appendChild(option1);
-        
+
         const option2 = document.createElement('option');
         option2.value = app.id;
         option2.textContent = app.name;
@@ -301,27 +301,27 @@ async function doCompare() {
     const app1Id = document.getElementById('compareApp1').value;
     const app2Id = document.getElementById('compareApp2').value;
     const resultDiv = document.getElementById('compareResult');
-    
+
     if (!app1Id || !app2Id) {
         alert('Pilih kedua aplikasi untuk dibandingkan!');
         return;
     }
-    
+
     if (app1Id === app2Id) {
         alert('Pilih aplikasi yang berbeda!');
         return;
     }
-    
+
     try {
         // Get app details
         const [response1, response2] = await Promise.all([
             fetch(`${API_BASE_URL}?action=getAppDetail&id=${app1Id}`),
             fetch(`${API_BASE_URL}?action=getAppDetail&id=${app2Id}`)
         ]);
-        
+
         const data1 = await response1.json();
         const data2 = await response2.json();
-        
+
         if (data1.success && data2.success) {
             displayCompareResult(data1.app, data2.app);
         } else {
@@ -335,7 +335,7 @@ async function doCompare() {
 
 function displayCompareResult(app1, app2) {
     const resultDiv = document.getElementById('compareResult');
-    
+
     const metrics = [
         { label: 'Skor Keseluruhan', key: 'overall_score' },
         { label: 'Kualitas', key: 'quality_score' },
@@ -346,7 +346,54 @@ function displayCompareResult(app1, app2) {
         { label: 'Rating Store', key: 'store_rating' },
         { label: 'Pengguna Aktif', key: 'active_users' }
     ];
-    
+
+    // Build pros/cons/features for each app
+    function generatePros(app) {
+        const pros = [];
+        if (app.quality_score >= 4 && app.quality_description) pros.push(app.quality_description);
+        if (app.usability_score >= 4 && app.usability_description) pros.push(app.usability_description);
+        if (app.literacy_score >= 4 && app.literacy_description) pros.push(app.literacy_description);
+        if (app.store_rating && app.store_rating >= 4.3) pros.push('Rating toko aplikasi tinggi');
+        // unique and short
+        return [...new Set(pros)].slice(0, 3);
+    }
+
+    function generateCons(app) {
+        const cons = [];
+        if (app.privacy_score < 4 && app.privacy_description) cons.push(app.privacy_description);
+        if (app.usability_score < 4 && app.usability_description) cons.push(app.usability_description);
+        if (app.recommendations && app.recommendations.length) {
+            // take first recommendation as an actionable improvement
+            cons.push(`Saran perbaikan: ${app.recommendations[0].title}`);
+        }
+        return [...new Set(cons)].slice(0, 3);
+    }
+
+    function extractHighlights(app) {
+        const text = `${app.quality_description || ''} ${app.usability_description || ''} ${app.recommendations ? app.recommendations.map(r => r.title + ' ' + r.description).join(' ') : ''}`.toLowerCase();
+        const keywords = {
+            'booking dokter': ['booking', 'booking dokter', 'appointment', 'booking dokter', 'booking doctor'],
+            'pengingat obat': ['reminder', 'remind', 'reminder obat', 'reminder obat', 'reminder obat'],
+            'barcode scanner': ['barcode', 'scanner', 'barcode scanner'],
+            'database makanan': ['database makanan', 'food database', 'database'],
+            'konseling/meditasi': ['meditasi', 'konseling', 'counseling', 'therapy'],
+            'apotek online': ['apotek', 'pharmacy', 'apotek online']
+        };
+        const found = [];
+        Object.keys(keywords).forEach(name => {
+            if (keywords[name].some(k => text.includes(k))) found.push(name);
+        });
+        return found.slice(0, 4);
+    }
+
+    const pros1 = generatePros(app1);
+    const cons1 = generateCons(app1);
+    const highlights1 = extractHighlights(app1);
+
+    const pros2 = generatePros(app2);
+    const cons2 = generateCons(app2);
+    const highlights2 = extractHighlights(app2);
+
     resultDiv.innerHTML = `
         <div class="compare-result">
             <div class="compare-app">
@@ -355,25 +402,60 @@ function displayCompareResult(app1, app2) {
                     <div class="compare-metric">
                         <span class="compare-metric-label">${metric.label}:</span>
                         <span class="compare-metric-value">
-                            ${metric.key.includes('score') || metric.key === 'store_rating' 
-                                ? app1[metric.key].toFixed(1) 
-                                : app1[metric.key]}
+                            ${metric.key.includes('score') || metric.key === 'store_rating'
+            ? app1[metric.key].toFixed(1)
+            : app1[metric.key]}
                         </span>
                     </div>
                 `).join('')}
+
+                <div class="compare-analysis">
+                    <h4>Kelebihan</h4>
+                    <ul>
+                        ${pros1.length ? pros1.map(p => `<li>${p}</li>`).join('') : '<li>Tidak ada catatan kelebihan khusus.</li>'}
+                    </ul>
+
+                    <h4>Kekurangan & Saran</h4>
+                    <ul>
+                        ${cons1.length ? cons1.map(c => `<li>${c}</li>`).join('') : '<li>Tidak ada catatan kekurangan khusus.</li>'}
+                    </ul>
+
+                    <h4>Fitur Unggulan</h4>
+                    <ul>
+                        ${highlights1.length ? highlights1.map(h => `<li>${h}</li>`).join('') : '<li>Fitur unggulan tidak terdeteksi secara otomatis.</li>'}
+                    </ul>
+                </div>
             </div>
+
             <div class="compare-app">
                 <h3><i class="${app2.icon}"></i> ${app2.name}</h3>
                 ${metrics.map(metric => `
                     <div class="compare-metric">
                         <span class="compare-metric-label">${metric.label}:</span>
                         <span class="compare-metric-value">
-                            ${metric.key.includes('score') || metric.key === 'store_rating' 
-                                ? app2[metric.key].toFixed(1) 
-                                : app2[metric.key]}
+                            ${metric.key.includes('score') || metric.key === 'store_rating'
+                    ? app2[metric.key].toFixed(1)
+                    : app2[metric.key]}
                         </span>
                     </div>
                 `).join('')}
+
+                <div class="compare-analysis">
+                    <h4>Kelebihan</h4>
+                    <ul>
+                        ${pros2.length ? pros2.map(p => `<li>${p}</li>`).join('') : '<li>Tidak ada catatan kelebihan khusus.</li>'}
+                    </ul>
+
+                    <h4>Kekurangan & Saran</h4>
+                    <ul>
+                        ${cons2.length ? cons2.map(c => `<li>${c}</li>`).join('') : '<li>Tidak ada catatan kekurangan khusus.</li>'}
+                    </ul>
+
+                    <h4>Fitur Unggulan</h4>
+                    <ul>
+                        ${highlights2.length ? highlights2.map(h => `<li>${h}</li>`).join('') : '<li>Fitur unggulan tidak terdeteksi secara otomatis.</li>'}
+                    </ul>
+                </div>
             </div>
         </div>
     `;
@@ -381,15 +463,15 @@ function displayCompareResult(app1, app2) {
 
 function addToCompare() {
     if (!currentAppId) return;
-    
+
     if (compareApps.length >= 2) {
         compareApps = [];
     }
-    
+
     if (!compareApps.includes(currentAppId)) {
         compareApps.push(currentAppId);
         alert(`Aplikasi ditambahkan ke perbandingan (${compareApps.length}/2)`);
-        
+
         if (compareApps.length === 2) {
             // Auto fill compare section
             document.getElementById('compareApp1').value = compareApps[0];
@@ -406,21 +488,21 @@ function exportToPDF() {
         alert('Tidak ada data untuk diekspor!');
         return;
     }
-    
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
+
     // Title
     doc.setFontSize(18);
     doc.text('Evaluasi Aplikasi Kesehatan Konsumen', 14, 20);
-    
+
     // Summary
     doc.setFontSize(12);
     const totalApps = allApps.length;
     const avgScore = (allApps.reduce((sum, app) => sum + app.overall_score, 0) / totalApps).toFixed(2);
     doc.text(`Total Aplikasi: ${totalApps}`, 14, 35);
     doc.text(`Rata-rata Skor: ${avgScore}/5.0`, 14, 42);
-    
+
     // Table header
     let y = 55;
     doc.setFontSize(10);
@@ -430,18 +512,18 @@ function exportToPDF() {
     doc.text('Skor', 130, y);
     doc.text('Privasi', 150, y);
     doc.text('Literasi', 170, y);
-    
+
     y += 10;
     doc.line(14, y, 200, y);
     y += 5;
-    
+
     // Table data
     allApps.forEach((app, index) => {
         if (y > 280) {
             doc.addPage();
             y = 20;
         }
-        
+
         doc.text((index + 1).toString(), 14, y);
         doc.text(app.name.substring(0, 20), 25, y);
         doc.text(getCategoryLabel(app.category).substring(0, 15), 80, y);
@@ -450,7 +532,7 @@ function exportToPDF() {
         doc.text(app.literacy_score.toFixed(1), 170, y);
         y += 7;
     });
-    
+
     // Save
     doc.save('evaluasi-aplikasi-kesehatan.pdf');
 }
@@ -507,7 +589,7 @@ function hideAllSections() {
 function updateNavActive(active) {
     const navButtons = document.querySelectorAll('.nav-btn');
     navButtons.forEach(btn => btn.classList.remove('active'));
-    
+
     const navMap = {
         'home': 0,
         'symptom': 1,
@@ -519,7 +601,7 @@ function updateNavActive(active) {
         'favorites': -1,
         'recent': -1
     };
-    
+
     if (navMap[active] !== undefined && navMap[active] >= 0) {
         navButtons[navMap[active]].classList.add('active');
     }
@@ -530,10 +612,10 @@ async function loadInsights() {
     if (!allApps || allApps.length === 0) {
         await loadApps();
     }
-    
+
     const apps = allApps;
     const insightsContent = document.getElementById('insightsContent');
-    
+
     // Calculate insights
     const avgScores = {
         quality: apps.reduce((sum, app) => sum + app.quality_score, 0) / apps.length,
@@ -542,16 +624,16 @@ async function loadInsights() {
         usability: apps.reduce((sum, app) => sum + app.usability_score, 0) / apps.length,
         accuracy: apps.reduce((sum, app) => sum + app.accuracy_score, 0) / apps.length
     };
-    
+
     // Find best and worst
-    const bestApp = apps.reduce((best, app) => 
+    const bestApp = apps.reduce((best, app) =>
         app.overall_score > best.overall_score ? app : best
     );
-    
-    const worstApp = apps.reduce((worst, app) => 
+
+    const worstApp = apps.reduce((worst, app) =>
         app.overall_score < worst.overall_score ? app : worst
     );
-    
+
     // Category analysis
     const categoryStats = {};
     apps.forEach(app => {
@@ -563,11 +645,11 @@ async function loadInsights() {
         categoryStats[cat].totalScore += app.overall_score;
         categoryStats[cat].apps.push(app);
     });
-    
+
     // Privacy analysis
     const privacyConcerns = apps.filter(app => app.privacy_score < 4.0).length;
     const privacyGood = apps.filter(app => app.privacy_score >= 4.0).length;
-    
+
     insightsContent.innerHTML = `
         <div class="insight-card">
             <h4><i class="fas fa-chart-line"></i> Analisis Skor Rata-rata</h4>
@@ -601,12 +683,12 @@ async function loadInsights() {
         <div class="insight-card">
             <h4><i class="fas fa-layer-group"></i> Analisis per Kategori</h4>
             ${Object.keys(categoryStats).map(cat => {
-                const stat = categoryStats[cat];
-                const avgScore = (stat.totalScore / stat.count).toFixed(2);
-                return `
+        const stat = categoryStats[cat];
+        const avgScore = (stat.totalScore / stat.count).toFixed(2);
+        return `
                     <p><strong>${cat}:</strong> ${stat.count} aplikasi, rata-rata skor ${avgScore}/5.0</p>
                 `;
-            }).join('')}
+    }).join('')}
         </div>
 
         <div class="insight-card">

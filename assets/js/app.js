@@ -109,6 +109,12 @@ async function loadApps() {
             allApps = data.apps;
             filteredApps = allApps;
             displayApps(filteredApps);
+            // Initialize charts and analysis with loaded data
+            try {
+                renderCharts(allApps);
+            } catch (e) {
+                console.warn('Chart rendering failed:', e);
+            }
         } else {
             showError(data.message || 'Gagal memuat data aplikasi');
         }
@@ -411,10 +417,177 @@ function getCategoryLabel(category) {
         'telemedicine': 'Telemedicine',
         'fitness': 'Fitness & Wellness',
         'mental': 'Kesehatan Mental',
-        'nutrition': 'Nutrisi'
+        'nutrition': 'Nutrisi',
+        'sleep': 'Sleep Monitor',
+        'pregnancy': 'Kesehatan Ibu & Anak',
+        'chronic': 'Penyakit Kronis',
+        'elderly': 'Kesehatan Lansia'
     };
     return labels[category] || category;
 }
+
+// --- Charts & Analysis ---
+function renderCharts(apps) {
+    if (!window.Chart) return;
+
+    const scores = apps.map(a => parseFloat(a.overall_score) || 0);
+    const categories = apps.map(a => a.category || 'unknown');
+    const dates = apps.map(a => a.evaluation_date || null);
+
+    // Score distribution buckets (0-1,1-2,2-3,3-4,4-5)
+    const buckets = [0, 0, 0, 0, 0];
+    scores.forEach(s => {
+        if (s < 1) buckets[0]++;
+        else if (s < 2) buckets[1]++;
+        else if (s < 3) buckets[2]++;
+        else if (s < 4) buckets[3]++;
+        else buckets[4]++;
+    });
+
+    // Category counts for pie chart
+    const categoryCounts = {};
+    categories.forEach(c => { categoryCounts[c] = (categoryCounts[c] || 0) + 1; });
+
+    // Trend: average score per month (from evaluation_date if available)
+    const monthly = {};
+    apps.forEach(a => {
+        const d = a.evaluation_date ? new Date(a.evaluation_date) : null;
+        const key = d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : 'unknown';
+        monthly[key] = monthly[key] || { sum: 0, count: 0 };
+        monthly[key].sum += parseFloat(a.overall_score) || 0;
+        monthly[key].count += 1;
+    });
+
+    const monthlyKeys = Object.keys(monthly).filter(k => k !== 'unknown').sort();
+    // fallback if no dates
+    if (monthlyKeys.length === 0) {
+        // create synthetic months based on index
+        for (let i = 0; i < Math.min(6, apps.length); i++) {
+            monthlyKeys.push(`M${i + 1}`);
+            monthly[`M${i + 1}`] = { sum: scores.slice(i, i + 1).reduce((a, b) => a + b, 0), count: 1 };
+        }
+    }
+
+    const trendLabels = monthlyKeys;
+    const trendData = monthlyKeys.map(k => +(monthly[k].sum / monthly[k].count).toFixed(2));
+
+    // Colors
+    const palette = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];
+
+    // Destroy existing charts if present
+    if (!window.charts) window.charts = {};
+    Object.keys(window.charts).forEach(key => {
+        try { window.charts[key].destroy(); } catch (e) { }
+    });
+
+    // Score distribution - Bar chart
+    const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+    window.charts.scoreChart = new Chart(scoreCtx, {
+        type: 'bar',
+        data: {
+            labels: ['0-1', '1-2', '2-3', '3-4', '4-5'],
+            datasets: [{
+                label: 'Jumlah Aplikasi',
+                data: buckets,
+                backgroundColor: palette.slice(0, 5),
+                borderRadius: 8,
+                maxBarThickness: 48
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: 'var(--muted-color)' } },
+                y: { beginAtZero: true, ticks: { color: 'var(--muted-color)' } }
+            }
+        }
+    });
+
+    // Category - Doughnut chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const catLabels = Object.keys(categoryCounts).map(k => getCategoryLabel(k));
+    const catValues = Object.values(categoryCounts);
+    const catColors = palette.slice(0, catLabels.length);
+
+    window.charts.categoryChart = new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: catLabels,
+            datasets: [{ data: catValues, backgroundColor: catColors, hoverOffset: 8 }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: 'var(--muted-color)' } },
+                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.formattedValue} aplikasi` } }
+            }
+        }
+    });
+
+    // Trend - Line chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    window.charts.trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'Rata-rata Skor',
+                data: trendData,
+                borderColor: palette[0],
+                backgroundColor: hexToRgba(palette[0], 0.08),
+                tension: 0.35,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+            scales: {
+                x: { ticks: { color: 'var(--muted-color)' }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { color: 'var(--muted-color)' }, suggestedMax: 5 }
+            }
+        }
+    });
+
+    // Fill analysis sections
+    try {
+        const scoreAnalysis = document.getElementById('scoreAnalysis');
+        const categoryAnalysis = document.getElementById('categoryAnalysis');
+        const trendAnalysis = document.getElementById('trendAnalysis');
+
+        const mean = meanOfArray(scores).toFixed(2);
+        const median = medianOfArray(scores).toFixed(2);
+        const topBucketIndex = buckets.indexOf(Math.max(...buckets));
+        const topBucketLabel = ['0-1', '1-2', '2-3', '3-4', '4-5'][topBucketIndex];
+
+        scoreAnalysis.innerHTML = `Rata-rata skor: <strong>${mean}</strong>. Median: <strong>${median}</strong>. Kelompok terbanyak: <strong>${topBucketLabel}</strong>. Gunakan tabel dan filter untuk melihat distribusi per kategori.`;
+
+        // Top category
+        const topCatIdx = catValues.indexOf(Math.max(...catValues));
+        const topCat = catLabels[topCatIdx] || '—';
+        categoryAnalysis.innerHTML = `Kategori terbanyak: <strong>${topCat}</strong> (${catValues[topCatIdx]} aplikasi). Periksa skor rata-rata per kategori untuk insight lebih dalam.`;
+
+        // Trend analysis
+        const trendChange = trendData.length >= 2 ? (trendData[trendData.length - 1] - trendData[0]).toFixed(2) : '0.00';
+        trendAnalysis.innerHTML = `Periode: <strong>${trendLabels[0]}</strong> → <strong>${trendLabels[trendLabels.length - 1]}</strong>. Perubahan rata-rata skor: <strong>${trendChange}</strong>. Lihat titik outlier untuk tanggal evaluasi yang berbeda.`;
+    } catch (e) {
+        console.warn('Analysis render error', e);
+    }
+}
+
+// Small helpers
+function meanOfArray(arr) { if (!arr.length) return 0; return arr.reduce((a, b) => a + (parseFloat(b) || 0), 0) / arr.length; }
+function medianOfArray(arr) { if (!arr.length) return 0; const s = arr.slice().sort((a, b) => a - b); const mid = Math.floor(s.length / 2); return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2; }
+function hexToRgba(hex, alpha) { const h = hex.replace('#', ''); const bigint = parseInt(h, 16); const r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255; return `rgba(${r},${g},${b},${alpha})`; }
 
 function showError(message) {
     const appList = document.getElementById('appList');
