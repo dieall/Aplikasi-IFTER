@@ -30,17 +30,27 @@ function sendJsonError($message, $code = 500) {
     exit();
 }
 
-// Get data source mode (real or fallback)
-$useRealData = isset($_GET['real']) && $_GET['real'] === 'true';
+// Load configuration
+if (file_exists(__DIR__ . '/config.php')) {
+    require_once __DIR__ . '/config.php';
+}
+
+// Get data source mode: use real data by default if enabled, unless explicitly disabled
+$useRealData = true; // Default to true
+if (isset($_GET['real'])) {
+    $useRealData = $_GET['real'] === 'true';
+} elseif (defined('ENABLE_REAL_DATA')) {
+    $useRealData = ENABLE_REAL_DATA;
+}
 
 // Try to get real data, fallback to static data if fails
 $baseApps = getStaticAppsData();
 try {
     if ($useRealData && function_exists('enhanceAppsWithRealData')) {
-        // Enhance base apps with real data
+        // Enhance base apps with real data from Play Store/App Store
         $apps = enhanceAppsWithRealData($baseApps);
     } else {
-        // Use static data
+        // Use static data only
         $apps = $baseApps;
     }
 } catch (Exception $e) {
@@ -57,9 +67,10 @@ function getStaticAppsData() {
         'name' => 'Halodoc',
         'category' => 'telemedicine',
         'icon' => 'fas fa-user-md',
+        'logo' => 'assets/images/apps/halodoc.png',
         'platform' => 'Android & iOS',
         'active_users' => '20+ juta',
-        'store_rating' => 4.5,
+        'store_rating' => 4.9,
         'overall_score' => 4.3,
         'quality_score' => 4.5,
         'quality_description' => 'Aplikasi dengan fitur lengkap untuk konsultasi dokter, pembelian obat, dan layanan kesehatan lainnya. Interface modern dan mudah digunakan.',
@@ -92,6 +103,7 @@ function getStaticAppsData() {
         'name' => 'Alodokter',
         'category' => 'telemedicine',
         'icon' => 'fas fa-stethoscope',
+        'logo' => 'assets/images/apps/alodokter.png',
         'platform' => 'Android & iOS',
         'active_users' => '15+ juta',
         'store_rating' => 4.4,
@@ -106,7 +118,7 @@ function getStaticAppsData() {
         'usability_description' => 'Interface cukup user-friendly, namun beberapa fitur memerlukan beberapa langkah untuk diakses.',
         'accuracy_score' => 4.2,
         'accuracy_description' => 'Informasi medis akurat dan selalu diupdate. Artikel kesehatan direview oleh tim medis profesional.',
-        'evaluation_date' => '2024-01-15',
+        'evaluation_date' => '2024-03-20',
         'recommendations' => [
             [
                 'title' => 'Optimasi User Experience',
@@ -127,6 +139,7 @@ function getStaticAppsData() {
         'name' => 'SehatQ',
         'category' => 'telemedicine',
         'icon' => 'fas fa-heartbeat',
+        'logo' => 'assets/images/apps/sehatq.png',
         'platform' => 'Android & iOS',
         'active_users' => '10+ juta',
         'store_rating' => 4.3,
@@ -141,7 +154,7 @@ function getStaticAppsData() {
         'usability_description' => 'Interface bersih dan mudah digunakan. Fitur reminder obat sangat membantu pengguna.',
         'accuracy_score' => 4.0,
         'accuracy_description' => 'Informasi medis akurat dengan sumber yang dapat dipercaya.',
-        'evaluation_date' => '2024-01-15',
+        'evaluation_date' => '2024-05-10',
         'recommendations' => [
             [
                 'title' => 'Peningkatan Konten Lokal',
@@ -162,6 +175,7 @@ function getStaticAppsData() {
         'name' => 'KlikDokter',
         'category' => 'telemedicine',
         'icon' => 'fas fa-clipboard-check',
+        'logo' => 'assets/images/apps/klikdokter.png',
         'platform' => 'Android & iOS',
         'active_users' => '8+ juta',
         'store_rating' => 4.2,
@@ -176,7 +190,7 @@ function getStaticAppsData() {
         'usability_description' => 'Interface fungsional namun terlihat sedikit ketinggalan zaman. Perlu update desain untuk pengalaman yang lebih modern.',
         'accuracy_score' => 4.1,
         'accuracy_description' => 'Informasi medis akurat dengan dokter yang terverifikasi.',
-        'evaluation_date' => '2024-01-15',
+        'evaluation_date' => '2024-07-25',
         'recommendations' => [
             [
                 'title' => 'Modernisasi Interface',
@@ -197,6 +211,7 @@ function getStaticAppsData() {
         'name' => 'MyFitnessPal',
         'category' => 'fitness',
         'icon' => 'fas fa-dumbbell',
+        'logo' => 'assets/images/apps/myfitnesspal.png',
         'platform' => 'Android & iOS',
         'active_users' => '200+ juta (global)',
         'store_rating' => 4.5,
@@ -211,7 +226,7 @@ function getStaticAppsData() {
         'usability_description' => 'Interface sangat intuitif dengan fitur barcode scanner yang memudahkan input data makanan.',
         'accuracy_score' => 4.2,
         'accuracy_description' => 'Database nutrisi cukup akurat, namun beberapa item makanan lokal Indonesia masih kurang lengkap.',
-        'evaluation_date' => '2024-01-15',
+        'evaluation_date' => '2024-08-22',
         'recommendations' => [
             [
                 'title' => 'Peningkatan Privasi Data Kesehatan',
@@ -232,6 +247,7 @@ function getStaticAppsData() {
         'name' => 'Riliv',
         'category' => 'mental',
         'icon' => 'fas fa-brain',
+        'logo' => 'assets/images/apps/riliv.png',
         'platform' => 'Android & iOS',
         'active_users' => '500+ ribu',
         'store_rating' => 4.4,
@@ -246,7 +262,7 @@ function getStaticAppsData() {
         'usability_description' => 'Interface tenang dan menenangkan dengan desain yang mendukung kesehatan mental.',
         'accuracy_score' => 4.1,
         'accuracy_description' => 'Konten dan program meditasi dikembangkan oleh profesional kesehatan mental yang terverifikasi.',
-        'evaluation_date' => '2024-01-15',
+        'evaluation_date' => '2024-10-18',
         'recommendations' => [
             [
                 'title' => 'Aksesibilitas Harga',
@@ -267,6 +283,7 @@ function getStaticAppsData() {
         'name' => 'NutriCheck',
         'category' => 'nutrition',
         'icon' => 'fas fa-apple-alt',
+        'logo' => 'assets/images/apps/nutricheck.png',
         'platform' => 'Android & iOS',
         'active_users' => '2+ juta',
         'store_rating' => 4.1,
@@ -281,7 +298,7 @@ function getStaticAppsData() {
         'usability_description' => 'Interface cukup baik namun beberapa fitur memerlukan beberapa langkah untuk diakses.',
         'accuracy_score' => 3.9,
         'accuracy_description' => 'Database nutrisi akurat untuk makanan umum, namun perlu ekspansi untuk variasi lokal.',
-        'evaluation_date' => '2024-01-15',
+        'evaluation_date' => '2024-12-05',
         'recommendations' => [
             [
                 'title' => 'Peningkatan User Experience',
@@ -302,6 +319,7 @@ function getStaticAppsData() {
         'name' => 'Good Doctor',
         'category' => 'telemedicine',
         'icon' => 'fas fa-hospital',
+        'logo' => 'assets/images/apps/gooddoctor.png',
         'platform' => 'Android & iOS',
         'active_users' => '10000+ juta',
         'store_rating' => 4.3,
@@ -316,7 +334,7 @@ function getStaticAppsData() {
         'usability_description' => 'Interface modern dan mudah digunakan dengan proses booking yang efisien.',
         'accuracy_score' => 4.0,
         'accuracy_description' => 'Informasi medis akurat dengan dokter yang terverifikasi dan terpercaya.',
-        'evaluation_date' => '2024-01-15',
+        'evaluation_date' => '2025-05-10',
         'recommendations' => [
             [
                 'title' => 'Transparansi Data Sharing',

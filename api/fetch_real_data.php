@@ -135,67 +135,115 @@ function parsePlayStoreHTML($html, $packageName) {
         'description' => ''
     ];
     
-    // Extract rating - multiple patterns
-    $ratingPatterns = [
-        '/<div[^>]*class="[^"]*BHMmbe[^"]*"[^>]*>([0-9.]+)<\/div>/',
-        '/<div[^>]*class="[^"]*TT9eCd[^"]*"[^>]*>([0-9.]+)<\/div>/',
-        '/"ratingValue":\s*([0-9.]+)/',
-        '/<span[^>]*>([0-9.]+)\s*<span[^>]*>bintang/i'
-    ];
+    // PRIORITY 1: Try to find in JSON-LD structured data first (most reliable and stable)
+    if (preg_match_all('/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/is', $html, $jsonMatches)) {
+        foreach ($jsonMatches[1] as $jsonStr) {
+            $jsonData = json_decode($jsonStr, true);
+            if (!$jsonData) continue;
+            
+            // Handle different JSON-LD structures
+            if (isset($jsonData['@type']) && $jsonData['@type'] == 'SoftwareApplication') {
+                if (isset($jsonData['aggregateRating'])) {
+                    if (isset($jsonData['aggregateRating']['ratingValue']) && $jsonData['aggregateRating']['ratingValue'] > 0) {
+                        $result['rating'] = round(floatval($jsonData['aggregateRating']['ratingValue']), 1);
+                    }
+                    if (isset($jsonData['aggregateRating']['reviewCount']) && $jsonData['aggregateRating']['reviewCount'] > 0) {
+                        $result['reviews'] = intval($jsonData['aggregateRating']['reviewCount']);
+                    }
+                }
+                if (isset($jsonData['name']) && empty($result['name'])) {
+                    $result['name'] = $jsonData['name'];
+                }
+                if (isset($jsonData['description']) && empty($result['description'])) {
+                    $result['description'] = $jsonData['description'];
+                }
+            }
+            
+            // Also check for aggregateRating at root level
+            if (isset($jsonData['aggregateRating']) && is_array($jsonData['aggregateRating'])) {
+                if (isset($jsonData['aggregateRating']['ratingValue']) && $jsonData['aggregateRating']['ratingValue'] > 0) {
+                    $result['rating'] = round(floatval($jsonData['aggregateRating']['ratingValue']), 1);
+                }
+                if (isset($jsonData['aggregateRating']['reviewCount']) && $jsonData['aggregateRating']['reviewCount'] > 0) {
+                    $result['reviews'] = intval($jsonData['aggregateRating']['reviewCount']);
+                }
+            }
+        }
+    }
     
-    foreach ($ratingPatterns as $pattern) {
-        if (preg_match($pattern, $html, $matches)) {
+    // Also try to find rating in window.__WML data (Play Store internal data)
+    if (preg_match('/AF_initDataCallback[\s\S]*?"ratingValue":\s*([0-9.]+)/', $html, $matches)) {
+        if (!isset($result['rating']) || $result['rating'] == 0) {
             $result['rating'] = round(floatval($matches[1]), 1);
-            break;
         }
     }
     
-    // Extract reviews count - multiple patterns
-    $reviewPatterns = [
-        '/<span[^>]*class="[^"]*AYi5wd[^"]*"[^>]*>([0-9,]+)/',
-        '/"ratingCount":\s*([0-9,]+)/',
-        '/<span[^>]*>([0-9,]+)\s*(ulasan|review)/i',
-        '/<span[^>]*>([0-9,]+)\s*<span[^>]*>rating/i'
-    ];
-    
-    foreach ($reviewPatterns as $pattern) {
-        if (preg_match($pattern, $html, $matches)) {
-            $result['reviews'] = intval(str_replace(',', '', $matches[1]));
-            break;
+    // PRIORITY 2: Try to find in og:rating meta tag
+    if (preg_match('/<meta[^>]*property="og:rating"[^>]*content="([0-9.]+)"/i', $html, $matches)) {
+        if (!isset($result['rating']) || $result['rating'] == 0) {
+            $result['rating'] = round(floatval($matches[1]), 1);
         }
     }
     
-    // Extract downloads/installs - multiple patterns for Indonesian and English
-    $downloadPatterns = [
-        '/>([0-9,]+(\+)?)\s*(downloads|installs|pengunduhan|pengguna|unduhan)   /i',
-        '/"([0-9,]+(\+)?)\s*(downloads|installs|pengunduhan)"/i',
-        '/<span[^>]*>([0-9,]+(\+)?)\s*(downloads|installs|pengunduhan|pengguna)/i',
-        '/"([0-9,]+(\+)?)\s*(M\+|B\+|K\+|juta|ribu|miliar)"/i',
-        '/<div[^>]*>([0-9,]+(\+)?)\s*(downloads|installs|pengunduhan)/i'
-    ];
-    
-    foreach ($downloadPatterns as $pattern) {
-        if (preg_match($pattern, $html, $matches)) {
-            $downloads = $matches[1];
-            $result['downloads'] = $downloads;
-            $result['user_count'] = formatDownloads($downloads);
-            break;
-        }
-    }
-    
-    // Try to find in JSON-LD structured data
-    if (preg_match('/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/is', $html, $matches)) {
-        $jsonData = json_decode($matches[1], true);
-        if ($jsonData && isset($jsonData['aggregateRating'])) {
-            if (!isset($result['rating']) || $result['rating'] == 0) {
-                $result['rating'] = round($jsonData['aggregateRating']['ratingValue'] ?? 0, 1);
-            }
-            if (!isset($result['reviews']) || $result['reviews'] == 0) {
-                $result['reviews'] = intval($jsonData['aggregateRating']['reviewCount'] ?? 0);
+    // PRIORITY 3: Fallback - Extract rating from HTML patterns
+    if (!isset($result['rating']) || $result['rating'] == 0) {
+        $ratingPatterns = [
+            '/<div[^>]*class="[^"]*BHMmbe[^"]*"[^>]*>([0-9.]+)<\/div>/',
+            '/<div[^>]*class="[^"]*TT9eCd[^"]*"[^>]*>([0-9.]+)<\/div>/',
+            '/<span[^>]*class="[^"]*AYi5wd[^"]*"[^>]*>([0-9.]+)/',
+            '/<span[^>]*>([0-9.]+)\s*<span[^>]*>bintang/i',
+            '/ratingValue["\s]*:[\s]*([0-9.]+)/'
+        ];
+        
+        foreach ($ratingPatterns as $pattern) {
+            if (preg_match($pattern, $html, $matches)) {
+                $rating = floatval($matches[1]);
+                if ($rating > 0 && $rating <= 5) {
+                    $result['rating'] = round($rating, 1);
+                    break;
+                }
             }
         }
-        if ($jsonData && isset($jsonData['offers']['price'])) {
-            // Additional data
+    }
+    
+    // PRIORITY 3: Fallback - Extract reviews count from HTML patterns
+    if (!isset($result['reviews']) || $result['reviews'] == 0) {
+        $reviewPatterns = [
+            '/<span[^>]*class="[^"]*AYi5wd[^"]*"[^>]*>([0-9,]+)/',
+            '/ratingCount["\s]*:[\s]*([0-9,]+)/',
+            '/<span[^>]*>([0-9,]+)\s*(ulasan|review)/i',
+            '/<span[^>]*>([0-9,]+)\s*<span[^>]*>rating/i',
+            '/reviewCount["\s]*:[\s]*([0-9,]+)/'
+        ];
+        
+        foreach ($reviewPatterns as $pattern) {
+            if (preg_match($pattern, $html, $matches)) {
+                $reviews = intval(str_replace(',', '', $matches[1]));
+                if ($reviews > 0) {
+                    $result['reviews'] = $reviews;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // PRIORITY 3: Extract downloads/installs
+    if (empty($result['downloads']) && empty($result['user_count'])) {
+        $downloadPatterns = [
+            '/>([0-9,]+(\+)?)\s*(downloads|installs|pengunduhan|pengguna|unduhan)/i',
+            '/"([0-9,]+(\+)?)\s*(downloads|installs|pengunduhan)"/i',
+            '/<span[^>]*>([0-9,]+(\+)?)\s*(downloads|installs|pengunduhan|pengguna)/i',
+            '/"([0-9,]+(\+)?)\s*(M\+|B\+|K\+|juta|ribu|miliar)"/i',
+            '/<div[^>]*>([0-9,]+(\+)?)\s*(downloads|installs|pengunduhan)/i'
+        ];
+        
+        foreach ($downloadPatterns as $pattern) {
+            if (preg_match($pattern, $html, $matches)) {
+                $downloads = $matches[1];
+                $result['downloads'] = $downloads;
+                $result['user_count'] = formatDownloads($downloads);
+                break;
+            }
         }
     }
     
@@ -405,13 +453,17 @@ function fetchAppData($appConfig) {
         }
     }
     
-    // Try to fetch from Play Store (Android)
+    // Try to fetch from Play Store (Android) - PRIORITY for Indonesian apps
     if (isset($appConfig['play_store_id']) && !empty($appConfig['play_store_id'])) {
         $playStoreData = fetchFromPlayStore($appConfig['play_store_id']);
         if ($playStoreData) {
-            // Use Play Store data if available (usually more accurate for Indonesian apps)
-            $mergedData['store_rating'] = $playStoreData['rating'] ?? $mergedData['store_rating'];
-            $mergedData['store_reviews'] = $playStoreData['reviews'] ?? $mergedData['store_reviews'] ?? 0;
+            // PRIORITIZE Play Store rating (usually more accurate for Indonesian apps)
+            if (isset($playStoreData['rating']) && $playStoreData['rating'] > 0) {
+                $mergedData['store_rating'] = round($playStoreData['rating'], 1);
+            }
+            if (isset($playStoreData['reviews']) && $playStoreData['reviews'] > 0) {
+                $mergedData['store_reviews'] = $playStoreData['reviews'];
+            }
             
             // Update active users with real download count
             if (!empty($playStoreData['user_count'])) {
@@ -435,16 +487,16 @@ function fetchAppData($appConfig) {
         }
     }
     
-    // If we got data from both stores, prefer Play Store for Android apps
+    // If we got data from both stores, prefer Play Store rating (more accurate for Indonesian market)
+    // Only use App Store data if Play Store data is not available
     if ($playStoreData && $appStoreData) {
-        // Average the ratings
-        $ratings = array_filter([$playStoreData['rating'] ?? 0, $appStoreData['rating'] ?? 0]);
-        if (!empty($ratings)) {
-            $mergedData['store_rating'] = round(array_sum($ratings) / count($ratings), 1);
-        }
-        
-        // Sum the reviews
+        // Play Store rating is already set above, but sum the reviews from both stores
         $mergedData['store_reviews'] = ($playStoreData['reviews'] ?? 0) + ($appStoreData['reviews'] ?? 0);
+    } elseif ($appStoreData && !$playStoreData) {
+        // Only App Store data available, use it
+        if (isset($appStoreData['rating']) && $appStoreData['rating'] > 0) {
+            $mergedData['store_rating'] = round($appStoreData['rating'], 1);
+        }
     }
     
     // Try RapidAPI as additional source
@@ -489,10 +541,18 @@ function enhanceAppsWithRealData($baseApps) {
             $app = $appConfig;
         }
         
-        // Ensure required fields
-        $app['store_rating'] = $app['store_rating'] ?? $appConfig['store_rating'] ?? 4.0;
+        // Ensure required fields - use real data if available, fallback to static data
+        // Only use static store_rating if real data fetching failed completely
+        if (!isset($app['store_rating']) || $app['store_rating'] == 0) {
+            $app['store_rating'] = $appConfig['store_rating'] ?? 4.0;
+        }
         $app['store_reviews'] = $app['store_reviews'] ?? 0;
         $app['evaluation_date'] = $app['evaluation_date'] ?? date('Y-m-d');
+        
+        // Log if using real data
+        if (isset($app['store_rating']) && $app['store_rating'] != ($appConfig['store_rating'] ?? 0)) {
+            error_log("Using real store rating for {$app['name']}: {$app['store_rating']}");
+        }
         
         $apps[] = $app;
     }

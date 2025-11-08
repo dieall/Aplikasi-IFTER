@@ -35,9 +35,27 @@ function setupEventListeners() {
     document.getElementById('searchInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleSearch();
     });
-    document.getElementById('categoryFilter').addEventListener('change', handleFilter);
-    document.getElementById('scoreFilter').addEventListener('change', handleFilter);
-    document.getElementById('sortFilter').addEventListener('change', handleFilter);
+    const categoryFilter = document.getElementById('categoryFilter');
+    const scoreFilter = document.getElementById('scoreFilter');
+    const sortFilter = document.getElementById('sortFilter');
+    
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', function() {
+            // Remove active state from quick filter buttons when dropdown changes
+            document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            handleFilter();
+        });
+    }
+    
+    if (scoreFilter) {
+        scoreFilter.addEventListener('change', handleFilter);
+    }
+    
+    if (sortFilter) {
+        sortFilter.addEventListener('change', handleFilter);
+    }
 
     // Sidebar functionality
     const sidebar = document.getElementById('sidebar');
@@ -71,6 +89,36 @@ function setupEventListeners() {
             e.preventDefault();
             const dropdownMenu = this.nextElementSibling;
             dropdownMenu.classList.toggle('show');
+        });
+    });
+
+    // Close modal dengan tombol ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            const appDetailModal = document.getElementById('appDetailModal');
+            if (appDetailModal && !appDetailModal.classList.contains('hidden')) {
+                closeDetail();
+            }
+        }
+    });
+    
+    // Close modal ketika klik overlay
+    const modalOverlay = document.getElementById('modalOverlay');
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeDetail();
+        });
+    }
+    
+    // Ensure navigation buttons can close modal and navigate
+    const navButtons = document.querySelectorAll('.nav-btn, .sidebar-btn');
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            // Close modal if open before navigation
+            if (window.closeModalIfOpen) {
+                window.closeModalIfOpen();
+            }
         });
     });
 }
@@ -132,24 +180,17 @@ function displayApps(apps, containerId = 'appList') {
     const container = document.getElementById(containerId);
 
     if (apps.length === 0) {
-        container.innerHTML = '<div class="no-results">Tidak ada aplikasi yang ditemukan</div>';
+        container.innerHTML = '<div class="no-results"><i class="fas fa-search" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 20px; display: block;"></i><h3>Tidak ada aplikasi yang ditemukan</h3><p>Coba pilih kategori lain atau ubah filter Anda</p><button class="clear-filter-btn" onclick="clearCategoryFilter()" style="margin-top: 20px;"><i class="fas fa-times"></i> Hapus Filter</button></div>';
         return;
     }
 
     container.innerHTML = apps.map(app => {
-        const isFav = window.isFavorite ? window.isFavorite(app.id) : false;
         return `
         <div class="app-card" onclick="showAppDetail(${app.id})">
-            ${window.isFavorite ? `
-            <div class="favorite-icon ${isFav ? 'favorited' : ''}" 
-                 data-app-id="${app.id}" 
-                 onclick="event.stopPropagation(); toggleFavorite(${app.id})">
-                <i class="${isFav ? 'fas' : 'far'} fa-heart"></i>
-            </div>
-            ` : ''}
             <div class="app-card-header">
                 <div class="app-icon">
-                    <i class="${app.icon}"></i>
+                    ${app.logo ? `<img src="${app.logo}" alt="${app.name}" class="app-logo" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<i class=\\'${app.icon}\\'></i>';">
+                    <i class="${app.icon}" style="display: none;"></i>` : `<i class="${app.icon}"></i>`}
                 </div>
                 <div class="app-info">
                     <h3>${app.name}</h3>
@@ -176,30 +217,46 @@ function displayApps(apps, containerId = 'appList') {
             </div>
         </div>
     `}).join('');
-
-    if (window.updateFavoriteIcons) {
-        window.updateFavoriteIcons();
-    }
 }
 
 // Show App Detail
-async function showAppDetail(appId) {
+window.showAppDetail = async function(appId) {
     currentAppId = appId; // Store for compare feature
 
-    // Hide all content sections
-    const contentSections = ['appList', 'dashboard', 'compareSection',
-        'problemDefinition', 'systemDesign', 'insights', 'ethics', 'about'];
-    contentSections.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
+    const appDetailModal = document.getElementById('appDetailModal');
+    const detailContent = document.getElementById('detailContent');
+    
+    // Check if modal exists
+    if (!appDetailModal) {
+        console.error('Modal element not found!');
+        alert('Modal element tidak ditemukan. Silakan refresh halaman.');
+        return;
+    }
+    
+    if (!detailContent) {
+        console.error('Detail content element not found!');
+        return;
+    }
+    
+    console.log('Membuka modal untuk app ID:', appId);
+    
+    // Tampilkan modal - hapus class hidden dan set display
+    appDetailModal.classList.remove('hidden');
+    appDetailModal.style.display = 'flex';
+    appDetailModal.style.visibility = 'visible';
+    appDetailModal.style.opacity = '1';
+    
+    // Prevent body scroll saat modal terbuka
+    document.body.style.overflow = 'hidden';
+    
+    console.log('Modal status:', {
+        hasHidden: appDetailModal.classList.contains('hidden'),
+        display: appDetailModal.style.display,
+        visibility: appDetailModal.style.visibility
     });
 
-    const appDetail = document.getElementById('appDetail');
-    const detailContent = document.getElementById('detailContent');
-    appDetail.classList.remove('hidden');
-
-    const loading = document.getElementById('loading');
-    loading.classList.remove('hidden');
+    // Show loading indicator inside modal
+    detailContent.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i><p style="margin-top: 20px;">Memuat detail aplikasi...</p></div>';
 
     try {
         const response = await fetch(`${API_BASE_URL}?action=getAppDetail&id=${appId}`);
@@ -214,13 +271,11 @@ async function showAppDetail(appId) {
             const app = data.app;
             detailContent.innerHTML = generateDetailHTML(app);
         } else {
-            showError(data.message || 'Gagal memuat detail aplikasi');
+            detailContent.innerHTML = `<div style="padding: 20px; text-align: center;"><p style="color: var(--danger-color);">${data.message || 'Gagal memuat detail aplikasi'}</p><button class="back-btn" onclick="closeDetail()" style="margin-top: 20px;">Tutup</button></div>`;
         }
     } catch (error) {
         console.error('Error loading app detail:', error);
-        showError(`Terjadi kesalahan saat memuat detail: ${error.message}`);
-    } finally {
-        loading.classList.add('hidden');
+        detailContent.innerHTML = `<div style="padding: 20px; text-align: center;"><p style="color: var(--danger-color);">Terjadi kesalahan: ${error.message}</p><button class="back-btn" onclick="closeDetail()" style="margin-top: 20px;">Tutup</button></div>`;
     }
 }
 
@@ -229,7 +284,8 @@ function generateDetailHTML(app) {
     return `
         <div class="detail-header">
             <div class="detail-icon">
-                <i class="${app.icon}"></i>
+                ${app.logo ? `<img src="${app.logo}" alt="${app.name}" class="app-logo" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<i class=\\'${app.icon}\\'></i>';">
+                <i class="${app.icon}" style="display: none;"></i>` : `<i class="${app.icon}"></i>`}
             </div>
             <div class="detail-title">
                 <h2>${app.name}</h2>
@@ -312,12 +368,25 @@ function generateDetailHTML(app) {
 }
 
 // Close Detail View
-function closeDetail() {
-    const appDetail = document.getElementById('appDetail');
-    const appList = document.getElementById('appList');
-
-    appDetail.classList.add('hidden');
-    appList.classList.remove('hidden');
+window.closeDetail = function() {
+    const appDetailModal = document.getElementById('appDetailModal');
+    
+    if (!appDetailModal) {
+        console.error('Modal tidak ditemukan saat menutup');
+        return;
+    }
+    
+    console.log('Menutup modal');
+    
+    // Sembunyikan modal
+    appDetailModal.classList.add('hidden');
+    appDetailModal.style.display = 'none';
+    appDetailModal.style.visibility = 'hidden';
+    appDetailModal.style.opacity = '0';
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+    
     currentAppId = null;
 }
 
@@ -338,10 +407,18 @@ function handleSearch() {
 }
 
 // Handle Filter
-function handleFilter() {
-    const category = document.getElementById('categoryFilter').value;
-    const minScore = parseFloat(document.getElementById('scoreFilter').value);
-    const sortBy = document.getElementById('sortFilter').value;
+window.handleFilter = function() {
+    const categoryFilter = document.getElementById('categoryFilter');
+    const scoreFilter = document.getElementById('scoreFilter');
+    const sortFilter = document.getElementById('sortFilter');
+    
+    if (!categoryFilter || !allApps || allApps.length === 0) {
+        return;
+    }
+    
+    const category = categoryFilter.value;
+    const minScore = parseFloat(scoreFilter ? scoreFilter.value : 0);
+    const sortBy = sortFilter ? sortFilter.value : 'score-desc';
 
     // Filter by category
     if (category === 'all') {
@@ -355,7 +432,7 @@ function handleFilter() {
         filteredApps = filteredApps.filter(app => app.overall_score >= minScore);
     }
 
-    // Sort
+    // Sort - default to score descending for better UX
     switch (sortBy) {
         case 'name':
             filteredApps.sort((a, b) => a.name.localeCompare(b.name));
@@ -373,9 +450,88 @@ function handleFilter() {
                 return usersB - usersA;
             });
             break;
+        default:
+            // Default: sort by score descending
+            filteredApps.sort((a, b) => b.overall_score - a.overall_score);
     }
 
-    displayApps(filteredApps);
+    // Display filtered apps
+    if (typeof displayApps === 'function') {
+        displayApps(filteredApps);
+    }
+    
+    // Show category header if filtering by category
+    showCategoryHeader(category);
+}
+
+// Show category header
+function showCategoryHeader(category) {
+    // Remove existing header if any
+    const existingHeader = document.getElementById('categoryHeader');
+    if (existingHeader) {
+        existingHeader.remove();
+    }
+    
+    if (category === 'all' || !category) {
+        return;
+    }
+    
+    const categoryLabels = {
+        'telemedicine': 'Telemedicine',
+        'fitness': 'Fitness & Wellness',
+        'mental': 'Kesehatan Mental',
+        'nutrition': 'Nutrisi',
+        'sleep': 'Sleep Monitor',
+        'pregnancy': 'Kesehatan Ibu & Anak',
+        'chronic': 'Penyakit Kronis',
+        'elderly': 'Kesehatan Lansia'
+    };
+    
+    const categoryLabel = categoryLabels[category] || category;
+    const appList = document.getElementById('appList');
+    
+    if (appList && filteredApps) {
+        const header = document.createElement('div');
+        header.id = 'categoryHeader';
+        header.className = 'category-header';
+        header.innerHTML = `
+            <div class="category-header-content">
+                <h2><i class="fas fa-filter"></i> ${categoryLabel}</h2>
+                <p>Menampilkan <strong>${filteredApps.length}</strong> aplikasi yang direkomendasikan</p>
+                <button class="clear-filter-btn" onclick="clearCategoryFilter()">
+                    <i class="fas fa-times"></i> Hapus Filter
+                </button>
+            </div>
+        `;
+        
+        // Insert before app list
+        appList.parentNode.insertBefore(header, appList);
+    }
+}
+
+// Clear category filter
+window.clearCategoryFilter = function() {
+    // Remove header
+    const header = document.getElementById('categoryHeader');
+    if (header) {
+        header.remove();
+    }
+    
+    // Reset filter dropdown
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.value = 'all';
+    }
+    
+    // Remove active state from buttons
+    document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show all apps
+    if (typeof handleFilter === 'function') {
+        handleFilter();
+    }
 }
 
 // Helper Functions
@@ -449,27 +605,43 @@ function renderCharts(apps) {
     categories.forEach(c => { categoryCounts[c] = (categoryCounts[c] || 0) + 1; });
 
     // Trend: average score per month (from evaluation_date if available)
+    // Create monthly data from 2024-01 to current month
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
+    // Group apps by evaluation date
     const monthly = {};
     apps.forEach(a => {
         const d = a.evaluation_date ? new Date(a.evaluation_date) : null;
-        const key = d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : 'unknown';
+        const key = d && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : '2024-01';
         monthly[key] = monthly[key] || { sum: 0, count: 0 };
         monthly[key].sum += parseFloat(a.overall_score) || 0;
         monthly[key].count += 1;
     });
 
-    const monthlyKeys = Object.keys(monthly).filter(k => k !== 'unknown').sort();
-    // fallback if no dates
-    if (monthlyKeys.length === 0) {
-        // create synthetic months based on index
-        for (let i = 0; i < Math.min(6, apps.length); i++) {
-            monthlyKeys.push(`M${i + 1}`);
-            monthly[`M${i + 1}`] = { sum: scores.slice(i, i + 1).reduce((a, b) => a + b, 0), count: 1 };
-        }
+    // Generate all months from 2024-01 to current month
+    const startDate = new Date('2024-01-01');
+    const endDate = new Date(`${currentYear}-${String(currentMonth).padStart(2, '0')}-01`);
+    const allMonths = [];
+    let current = new Date(startDate);
+    
+    while (current <= endDate) {
+        const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+        allMonths.push(monthKey);
+        current.setMonth(current.getMonth() + 1);
     }
-
-    const trendLabels = monthlyKeys;
-    const trendData = monthlyKeys.map(k => +(monthly[k].sum / monthly[k].count).toFixed(2));
+    
+    // Calculate average for each month, interpolate if missing
+    const overallAvg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const trendLabels = allMonths;
+    const trendData = allMonths.map(monthKey => {
+        if (monthly[monthKey]) {
+            return +(monthly[monthKey].sum / monthly[monthKey].count).toFixed(2);
+        }
+        // Use overall average for missing months (will be interpolated by createTrendChart)
+        return overallAvg;
+    });
 
     // Colors
     const palette = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];

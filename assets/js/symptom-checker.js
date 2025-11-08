@@ -121,6 +121,10 @@ function recommendMedications(symptomText, analysis) {
 
 // Show Symptom Checker
 function showSymptomChecker() {
+    // Close modal if open
+    if (window.closeModalIfOpen) {
+        window.closeModalIfOpen();
+    }
     hideAllSections();
     document.getElementById('symptomChecker').classList.remove('hidden');
     updateNavActive('symptom');
@@ -449,7 +453,8 @@ function displayRecommendations(recommendations, symptomText, analysis) {
             <div class="recommendation-card recommended">
                 <div class="recommendation-header">
                     <div class="recommendation-icon">
-                        <i class="${app.icon}"></i>
+                        ${app.logo ? `<img src="${app.logo}" alt="${app.name}" class="app-logo" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<i class=\\'${app.icon}\\'></i>';">
+                        <i class="${app.icon}" style="display: none;"></i>` : `<i class="${app.icon}"></i>`}
                     </div>
                     <div class="recommendation-info">
                         <h4>

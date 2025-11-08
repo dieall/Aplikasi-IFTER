@@ -1,4 +1,4 @@
-// Advanced Features: Favorites, Recent Views, Share, Export, Toast, Search Suggestions
+// Advanced Features: Share, Export, Toast, Search Suggestions
 
 // Global compare apps array
 let compareApps = [];
@@ -31,116 +31,7 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Favorites Management
-let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-let recentViews = JSON.parse(localStorage.getItem('recentViews') || '[]');
-
-function updateFavoriteCount() {
-    const count = favorites.length;
-    const badge = document.getElementById('favoriteCount');
-    if (badge) {
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'inline-block' : 'none';
-    }
-}
-
-function isFavorite(appId) {
-    return favorites.includes(appId);
-}
-
-function toggleFavorite(appId = null) {
-    const id = appId || currentAppId;
-    if (!id) return;
-    
-    const index = favorites.indexOf(id);
-    const favoriteBtn = document.getElementById('favoriteBtn');
-    
-    if (index > -1) {
-        favorites.splice(index, 1);
-        if (favoriteBtn) {
-            favoriteBtn.classList.remove('favorited');
-            favoriteBtn.innerHTML = '<i class="far fa-heart"></i>';
-        }
-        showToast('Dihapus dari favorit', 'info');
-    } else {
-        favorites.push(id);
-        if (favoriteBtn) {
-            favoriteBtn.classList.add('favorited');
-            favoriteBtn.innerHTML = '<i class="fas fa-heart"></i>';
-        }
-        showToast('Ditambahkan ke favorit', 'success');
-    }
-    
-    localStorage.setItem('favorites', JSON.stringify(favorites));
-    updateFavoriteCount();
-    updateFavoriteIcons();
-}
-
-function updateFavoriteIcons() {
-    document.querySelectorAll('.favorite-icon').forEach(icon => {
-        const appId = parseInt(icon.dataset.appId);
-        if (isFavorite(appId)) {
-            icon.classList.add('favorited');
-            icon.innerHTML = '<i class="fas fa-heart"></i>';
-        } else {
-            icon.classList.remove('favorited');
-            icon.innerHTML = '<i class="far fa-heart"></i>';
-        }
-    });
-}
-
-async function showFavorites() {
-    hideAllSections();
-    document.getElementById('favoritesSection').classList.remove('hidden');
-    updateNavActive('favorites');
-    
-    if (favorites.length === 0) {
-        document.getElementById('favoritesList').innerHTML = `
-            <div class="no-results">
-                <i class="fas fa-heart" style="font-size: 3rem; color: #ccc; margin-bottom: 20px;"></i>
-                <p>Belum ada aplikasi favorit</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const favoriteApps = allApps.filter(app => favorites.includes(app.id));
-    displayAppsWithFavorites(favoriteApps, 'favoritesList');
-}
-
-// Recent Views Management
-function addToRecentViews(appId) {
-    if (!appId) return;
-    
-    const index = recentViews.indexOf(appId);
-    if (index > -1) {
-        recentViews.splice(index, 1);
-    }
-    
-    recentViews.unshift(appId);
-    recentViews = recentViews.slice(0, 10); // Keep only last 10
-    
-    localStorage.setItem('recentViews', JSON.stringify(recentViews));
-}
-
-async function showRecentViews() {
-    hideAllSections();
-    document.getElementById('recentViewsSection').classList.remove('hidden');
-    updateNavActive('recent');
-    
-    if (recentViews.length === 0) {
-        document.getElementById('recentViewsList').innerHTML = `
-            <div class="no-results">
-                <i class="fas fa-history" style="font-size: 3rem; color: #ccc; margin-bottom: 20px;"></i>
-                <p>Belum ada aplikasi yang dilihat</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const recentApps = allApps.filter(app => recentViews.includes(app.id));
-    displayAppsWithFavorites(recentApps, 'recentViewsList');
-}
+// Favorites and Recent Views features removed
 
 // Share Functionality
 function shareApp() {
@@ -206,7 +97,8 @@ function setupSearchSuggestions() {
         
         suggestionsDiv.innerHTML = matches.map(app => `
             <div class="suggestion-item" onclick="selectSuggestion(${app.id})">
-                <i class="${app.icon}"></i>
+                ${app.logo ? `<img src="${app.logo}" alt="${app.name}" class="app-logo-small" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<i class=\\'${app.icon}\\'></i>';">
+                <i class="${app.icon}" style="display: none;"></i>` : `<i class="${app.icon}"></i>`}
                 <div>
                     <div style="font-weight: 600;">${app.name}</div>
                     <div style="font-size: 0.85rem; color: var(--text-secondary);">${getCategoryLabel(app.category)}</div>
@@ -231,13 +123,97 @@ function selectSuggestion(appId) {
 }
 
 // Quick Filters
-function quickFilter(category) {
-    document.getElementById('categoryFilter').value = category;
+window.quickFilter = function(category, buttonElement) {
+    // Close modal if open
+    if (window.closeModalIfOpen) {
+        window.closeModalIfOpen();
+    }
+    
+    // Hide all other sections
+    const sections = ['dashboard', 'compareSection', 'problemDefinition', 'systemDesign', 
+                     'insights', 'ethics', 'about', 'symptomChecker'];
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+    
+    // Show app list
+    const appList = document.getElementById('appList');
+    if (appList) {
+        appList.classList.remove('hidden');
+    }
+    
+    // Update category filter dropdown
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.value = category;
+    }
+    
+    // Update active state for quick filter buttons
     document.querySelectorAll('.quick-filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    event.target.closest('.quick-filter-btn').classList.add('active');
-    handleFilter();
+    
+    // Set active state for clicked button
+    if (buttonElement) {
+        buttonElement.classList.add('active');
+    } else {
+        // Fallback: find button by category
+        const buttons = document.querySelectorAll('.quick-filter-btn');
+        buttons.forEach(btn => {
+            const onclick = btn.getAttribute('onclick');
+            if (onclick && onclick.includes(`'${category}'`)) {
+                btn.classList.add('active');
+            }
+        });
+    }
+    
+    // Clear search input
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // Set sort to score descending for better UX when filtering by category
+    const sortFilter = document.getElementById('sortFilter');
+    if (sortFilter && sortFilter.value === 'name') {
+        sortFilter.value = 'score-desc';
+    }
+    
+    // Apply filter
+    if (typeof handleFilter === 'function') {
+        handleFilter();
+    } else {
+        // Fallback: manually filter and display
+        if (window.allApps && window.allApps.length > 0) {
+            let filtered = window.allApps.filter(app => app.category === category);
+            
+            // Sort by score descending (best apps first)
+            filtered.sort((a, b) => b.overall_score - a.overall_score);
+            
+            // Update filteredApps global variable
+            if (typeof window.filteredApps !== 'undefined') {
+                window.filteredApps = filtered;
+            }
+            
+            if (typeof displayApps === 'function') {
+                displayApps(filtered);
+            }
+        }
+    }
+    
+    // Scroll to app list smoothly
+    setTimeout(() => {
+        const appListElement = document.getElementById('appList');
+        if (appListElement) {
+            appListElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 100);
+    
+    // Update nav active state
+    if (typeof updateNavActive === 'function') {
+        updateNavActive('home');
+    }
 }
 
 // Export Functions
@@ -272,88 +248,16 @@ function exportToCSV() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
-    updateFavoriteCount();
     setupSearchSuggestions();
-    
-    // Update favorite button state when viewing detail
-    const originalShowAppDetail = window.showAppDetail;
-    window.showAppDetail = async function(appId) {
-        await originalShowAppDetail(appId);
-        addToRecentViews(appId);
-        
-        const favoriteBtn = document.getElementById('favoriteBtn');
-        if (favoriteBtn) {
-            if (isFavorite(appId)) {
-                favoriteBtn.classList.add('favorited');
-                favoriteBtn.innerHTML = '<i class="fas fa-heart"></i>';
-            } else {
-                favoriteBtn.classList.remove('favorited');
-                favoriteBtn.innerHTML = '<i class="far fa-heart"></i>';
-            }
-        }
-    };
 });
 
-// Enhanced displayApps with favorite icons
-function displayAppsWithFavorites(apps, containerId = 'appList') {
-    const container = document.getElementById(containerId);
-    
-    if (apps.length === 0) {
-        container.innerHTML = '<div class="no-results">Tidak ada aplikasi yang ditemukan</div>';
-        return;
-    }
-    
-    container.innerHTML = apps.map(app => `
-        <div class="app-card" onclick="showAppDetail(${app.id})">
-            <div class="favorite-icon ${isFavorite(app.id) ? 'favorited' : ''}" 
-                 data-app-id="${app.id}" 
-                 onclick="event.stopPropagation(); toggleFavorite(${app.id})">
-                <i class="${isFavorite(app.id) ? 'fas' : 'far'} fa-heart"></i>
-            </div>
-            <div class="app-card-header">
-                <div class="app-icon">
-                    <i class="${app.icon}"></i>
-                </div>
-                <div class="app-info">
-                    <h3>${app.name}</h3>
-                    <div class="category">${getCategoryLabel(app.category)}</div>
-                </div>
-            </div>
-            <div class="rating">
-                <div class="stars">${generateStars(app.overall_score)}</div>
-                <span class="score">${app.overall_score.toFixed(1)}/5.0</span>
-            </div>
-            <div class="metrics">
-                <div class="metric">
-                    <div class="metric-label">Kualitas</div>
-                    <div class="metric-value">${app.quality_score.toFixed(1)}</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label">Privasi</div>
-                    <div class="metric-value">${app.privacy_score.toFixed(1)}</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label">Literasi</div>
-                    <div class="metric-value">${app.literacy_score.toFixed(1)}</div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-    
-    updateFavoriteIcons();
-}
+// Removed displayAppsWithFavorites - using standard displayApps from app.js instead
 
 // Make functions globally available
 window.showToast = showToast;
-window.toggleFavorite = toggleFavorite;
-window.showFavorites = showFavorites;
-window.showRecentViews = showRecentViews;
 window.shareApp = shareApp;
 window.selectSuggestion = selectSuggestion;
 window.quickFilter = quickFilter;
 window.exportToExcel = exportToExcel;
 window.exportToCSV = exportToCSV;
-window.isFavorite = isFavorite;
-window.updateFavoriteIcons = updateFavoriteIcons;
-window.addToRecentViews = addToRecentViews;
 

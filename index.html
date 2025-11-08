@@ -30,12 +30,6 @@
                 <button class="sidebar-btn" onclick="showCompare()">
                     <i class="fas fa-balance-scale"></i> Bandingkan
                 </button>
-                <button class="sidebar-btn" onclick="showFavorites()">
-                    <i class="fas fa-heart"></i> Favorit <span id="favoriteCount" class="badge">0</span>
-                </button>
-                <button class="sidebar-btn" onclick="showRecentViews()">
-                    <i class="fas fa-history"></i> Terakhir Dilihat
-                </button>
                 <div class="sidebar-dropdown">
                     <button class="sidebar-btn dropdown-toggle">
                         <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down"></i>
@@ -83,7 +77,8 @@
     <div class="container">
         <header>
             <div class="header-top">
-                <h1><i class="fas fa-mobile-alt"></i> Evaluasi Aplikasi Kesehatan Konsumen</h1>
+        
+                <h1>Evaluasi Aplikasi Kesehatan Konsumen</h1>
             </div>
             <p class="subtitle">Evaluasi kualitas, privasi, dan literasi pengguna aplikasi kesehatan seluler</p>
         </header>
@@ -98,28 +93,28 @@
                 <button id="searchBtn"><i class="fas fa-search"></i> Cari</button>
             </div>
             <div class="quick-filters">
-                <button class="quick-filter-btn" onclick="quickFilter('telemedicine')">
+                <button class="quick-filter-btn" onclick="quickFilter('telemedicine', this)">
                     <i class="fas fa-user-md"></i> Telemedicine
                 </button>
-                <button class="quick-filter-btn" onclick="quickFilter('fitness')">
+                <button class="quick-filter-btn" onclick="quickFilter('fitness', this)">
                     <i class="fas fa-dumbbell"></i> Fitness
                 </button>
-                <button class="quick-filter-btn" onclick="quickFilter('mental')">
+                <button class="quick-filter-btn" onclick="quickFilter('mental', this)">
                     <i class="fas fa-brain"></i> Mental Health
                 </button>
-                <button class="quick-filter-btn" onclick="quickFilter('nutrition')">
+                <button class="quick-filter-btn" onclick="quickFilter('nutrition', this)">
                     <i class="fas fa-apple-alt"></i> Nutrisi
                 </button>
-                <button class="quick-filter-btn" onclick="quickFilter('sleep')">
+                <button class="quick-filter-btn" onclick="quickFilter('sleep', this)">
                     <i class="fas fa-bed"></i> Sleep Monitor
                 </button>
-                <button class="quick-filter-btn" onclick="quickFilter('pregnancy')">
+                <button class="quick-filter-btn" onclick="quickFilter('pregnancy', this)">
                     <i class="fas fa-baby"></i> Kesehatan Ibu & Anak
                 </button>
-                <button class="quick-filter-btn" onclick="quickFilter('chronic')">
+                <button class="quick-filter-btn" onclick="quickFilter('chronic', this)">
                     <i class="fas fa-heartbeat"></i> Penyakit Kronis
                 </button>
-                <button class="quick-filter-btn" onclick="quickFilter('elderly')">
+                <button class="quick-filter-btn" onclick="quickFilter('elderly', this)">
                     <i class="fas fa-walking"></i> Kesehatan Lansia
                 </button>
             </div>
@@ -199,18 +194,24 @@
             </div>
             <div class="charts-container">
                 <div class="chart-card">
-                    <h3>Distribusi Skor Aplikasi</h3>
-                    <canvas id="scoreChart"></canvas>
+                    <h3><i class="fas fa-chart-bar"></i> Distribusi Skor Aplikasi</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="scoreChart"></canvas>
+                    </div>
                     <div id="scoreAnalysis" class="chart-analysis">Memuat analisis...</div>
                 </div>
                 <div class="chart-card">
-                    <h3>Skor per Kategori</h3>
-                    <canvas id="categoryChart"></canvas>
+                    <h3><i class="fas fa-chart-pie"></i> Skor per Kategori</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
                     <div id="categoryAnalysis" class="chart-analysis">Memuat analisis...</div>
                 </div>
                 <div class="chart-card">
-                    <h3>Trend Skor Rata-rata (Waktu)</h3>
-                    <canvas id="trendChart"></canvas>
+                    <h3><i class="fas fa-chart-line"></i> Trend Skor Rata-rata (Waktu)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="trendChart"></canvas>
+                    </div>
                     <div id="trendAnalysis" class="chart-analysis">Memuat analisis...</div>
                 </div>
             </div>
@@ -592,45 +593,30 @@
             </button>
         </div>
 
-        <!-- Favorites Section -->
-        <div id="favoritesSection" class="content-section hidden">
-            <h2><i class="fas fa-heart"></i> Aplikasi Favorit</h2>
-            <div id="favoritesList" class="app-list"></div>
-            <button class="back-btn" onclick="showHome()">
-                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
-            </button>
-        </div>
-
-        <!-- Recent Views Section -->
-        <div id="recentViewsSection" class="content-section hidden">
-            <h2><i class="fas fa-history"></i> Terakhir Dilihat</h2>
-            <div id="recentViewsList" class="app-list"></div>
-            <button class="back-btn" onclick="showHome()">
-                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
-            </button>
-        </div>
 
         <div id="appList" class="app-list"></div>
 
-        <div id="appDetail" class="app-detail hidden">
-            <div class="detail-header-actions">
-                <button class="back-btn" onclick="closeDetail()">
-                    <i class="fas fa-arrow-left"></i> Kembali
-                </button>
-                <div class="detail-actions-group">
-                    <button class="action-icon-btn" onclick="toggleFavorite()" id="favoriteBtn"
-                        title="Tambahkan ke Favorit">
-                        <i class="far fa-heart"></i>
-                    </button>
-                    <button class="action-icon-btn" onclick="shareApp()" title="Bagikan">
-                        <i class="fas fa-share-alt"></i>
-                    </button>
-                    <button class="compare-add-btn" onclick="addToCompare()" id="addToCompareBtn">
-                        <i class="fas fa-plus"></i> Bandingkan
-                    </button>
+        <!-- Modal untuk Detail Aplikasi -->
+        <div id="appDetailModal" class="modal hidden">
+            <div class="modal-overlay" id="modalOverlay"></div>
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="app-detail">
+                    <div class="detail-header-actions">
+                        <button class="back-btn" onclick="closeDetail()">
+                            <i class="fas fa-arrow-left"></i> Kembali
+                        </button>
+                        <div class="detail-actions-group">
+                            <button class="action-icon-btn" onclick="shareApp()" title="Bagikan">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button class="compare-add-btn" onclick="addToCompare()" id="addToCompareBtn">
+                                <i class="fas fa-plus"></i> Bandingkan
+                            </button>
+                        </div>
+                    </div>
+                    <div id="detailContent"></div>
                 </div>
             </div>
-            <div id="detailContent"></div>
         </div>
     </div>
 
