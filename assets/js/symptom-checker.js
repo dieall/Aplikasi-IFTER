@@ -198,8 +198,17 @@ function getRecommendedApps(analysis, apps) {
     // Sort by score
     recommendations.sort((a, b) => b.score - a.score);
     
-    // Return top 5 recommendations
-    return recommendations.slice(0, 5);
+    // Return only the top 1 recommendation (most relevant)
+    // Filter to only show apps that match the category
+    const topMatches = recommendations.filter(rec => rec.isTopMatch);
+    
+    if (topMatches.length > 0) {
+        // Return only the best match
+        return [topMatches[0]];
+    }
+    
+    // If no category match, return top 1 overall
+    return recommendations.slice(0, 1);
 }
 
 // Display recommendations
@@ -231,6 +240,9 @@ function displayRecommendations(recommendations, symptomText, analysis) {
     // Analysis summary
     const matchedCategories = analysis.categories.map(cat => getCategoryLabel(cat.category)).join(', ');
     
+    // Get top charts for matched categories
+    const topCharts = getTopChartsForCategories(analysis.categories.map(cat => cat.category));
+    
     let html = urgencyWarning;
     
     html += `
@@ -242,24 +254,93 @@ function displayRecommendations(recommendations, symptomText, analysis) {
         </div>
     `;
     
-    // Recommendations
-    html += '<div class="recommendations-list">';
+    // Trust Indicators
+    const totalApps = allApps.length;
+    const avgRating = allApps.reduce((sum, app) => sum + app.overall_score, 0) / totalApps;
+    const totalUsers = allApps.reduce((sum, app) => {
+        const users = app.active_users.match(/(\d+)/);
+        return sum + (users ? parseInt(users[1]) : 0);
+    }, 0);
     
-    recommendations.forEach((rec, index) => {
-        const app = rec.app;
-        const isTop = rec.isTopMatch;
-        const rank = index + 1;
-        
+    html += `
+        <div class="trust-indicators">
+            <div class="trust-item">
+                <i class="fas fa-mobile-alt"></i>
+                <div class="trust-item-value">${totalApps}+</div>
+                <div class="trust-item-label">Aplikasi Dievaluasi</div>
+            </div>
+            <div class="trust-item">
+                <i class="fas fa-star"></i>
+                <div class="trust-item-value">${avgRating.toFixed(1)}</div>
+                <div class="trust-item-label">Rating Rata-rata</div>
+            </div>
+            <div class="trust-item">
+                <i class="fas fa-users"></i>
+                <div class="trust-item-value">${totalUsers}+</div>
+                <div class="trust-item-label">Juta Pengguna</div>
+            </div>
+            <div class="trust-item">
+                <i class="fas fa-check-circle"></i>
+                <div class="trust-item-value">100%</div>
+                <div class="trust-item-label">Terverifikasi</div>
+            </div>
+        </div>
+    `;
+    
+    // Top Charts Section
+    if (topCharts.length > 0) {
         html += `
-            <div class="recommendation-card ${isTop ? 'recommended' : ''}">
+            <div class="top-charts-section">
+                <h4><i class="fas fa-trophy"></i> Top Chart Aplikasi Terbaik</h4>
+                <p class="charts-subtitle">Berdasarkan evaluasi komprehensif dan rating pengguna - Memberikan kepercayaan untuk pilihan Anda</p>
+                <div class="top-charts-container">
+                    ${topCharts.map((chart, index) => `
+                        <div class="top-chart-card">
+                            <div class="chart-header">
+                                <h5><i class="${getCategoryIcon(chart.category)}"></i> ${chart.category === 'all' ? 'Semua Kategori' : getCategoryLabel(chart.category)}</h5>
+                                <span class="chart-badge">Top ${chart.apps.length}</span>
+                            </div>
+                            <div class="chart-ranking">
+                                ${chart.apps.map((app, rank) => `
+                                    <div class="rank-item ${rank === 0 ? 'rank-gold' : rank === 1 ? 'rank-silver' : rank === 2 ? 'rank-bronze' : ''}" onclick="showAppDetail(${app.id}); showHome();">
+                                        <div class="rank-number">${rank + 1}</div>
+                                        <div class="rank-info">
+                                            <div class="rank-name">${app.name}</div>
+                                            <div class="rank-score">
+                                                <span class="score-value">${app.overall_score.toFixed(1)}</span>
+                                                <span class="score-stars">${generateStars(app.overall_score)}</span>
+                                            </div>
+                                        </div>
+                                        <div class="rank-badge-icon">
+                                            ${rank === 0 ? '<i class="fas fa-crown"></i>' : ''}
+                                            ${rank === 1 ? '<i class="fas fa-medal"></i>' : ''}
+                                            ${rank === 2 ? '<i class="fas fa-award"></i>' : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Recommendations - Only show the top 1 recommendation
+    if (recommendations.length > 0) {
+        const rec = recommendations[0];
+        const app = rec.app;
+        
+        html += '<div class="recommendations-list">';
+        html += `
+            <div class="recommendation-card recommended">
                 <div class="recommendation-header">
                     <div class="recommendation-icon">
                         <i class="${app.icon}"></i>
                     </div>
                     <div class="recommendation-info">
                         <h4>
-                            ${rank === 1 ? '<span style="color: var(--secondary-color);">⭐ REKOMENDASI UTAMA</span> ' : ''}
-                            ${app.name}
+                            <span style="color: var(--secondary-color);">⭐ REKOMENDASI UTAMA</span> ${app.name}
                         </h4>
                         <div class="recommendation-match">
                             <i class="fas fa-check-circle"></i> ${rec.matchReason}
@@ -296,11 +377,80 @@ function displayRecommendations(recommendations, symptomText, analysis) {
                 </div>
             </div>
         `;
-    });
-    
-    html += '</div>';
+        html += '</div>';
+    }
     
     contentDiv.innerHTML = html;
+}
+
+// Get top charts for categories
+function getTopChartsForCategories(categories) {
+    if (!allApps || allApps.length === 0) return [];
+    
+    const charts = [];
+    const uniqueCategories = [...new Set(categories)];
+    
+    uniqueCategories.forEach(category => {
+        const categoryApps = allApps
+            .filter(app => app.category === category)
+            .sort((a, b) => b.overall_score - a.overall_score)
+            .slice(0, 5); // Top 5 per category
+        
+        if (categoryApps.length > 0) {
+            charts.push({
+                category: category,
+                apps: categoryApps
+            });
+        }
+    });
+    
+    // If no specific category matched, show overall top apps
+    if (charts.length === 0) {
+        const topApps = allApps
+            .sort((a, b) => b.overall_score - a.overall_score)
+            .slice(0, 5);
+        
+        charts.push({
+            category: 'all',
+            apps: topApps
+        });
+    }
+    
+    return charts;
+}
+
+// Get category icon
+function getCategoryIcon(category) {
+    const icons = {
+        'telemedicine': 'fas fa-user-md',
+        'fitness': 'fas fa-dumbbell',
+        'mental': 'fas fa-brain',
+        'nutrition': 'fas fa-apple-alt',
+        'all': 'fas fa-star'
+    };
+    return icons[category] || 'fas fa-mobile-alt';
+}
+
+// Generate stars from score
+function generateStars(score) {
+    const fullStars = Math.floor(score);
+    const hasHalfStar = score % 1 >= 0.5;
+    let stars = '';
+    
+    for (let i = 0; i < fullStars; i++) {
+        stars += '<i class="fas fa-star"></i>';
+    }
+    
+    if (hasHalfStar && fullStars < 5) {
+        stars += '<i class="fas fa-star-half-alt"></i>';
+    }
+    
+    const emptyStars = 5 - Math.ceil(score);
+    for (let i = 0; i < emptyStars; i++) {
+        stars += '<i class="far fa-star"></i>';
+    }
+    
+    return stars;
 }
 
 // Get recommendation reason
