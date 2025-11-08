@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Evaluasi Aplikasi Kesehatan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        pre {
+            background: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #10b981;
+        }
+        .error {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test API - Evaluasi Aplikasi Kesehatan</h1>
+    
+    <div class="test-box">
+        <h2>Informasi Path</h2>
+        <p><strong>Current Path:</strong> <span id="currentPath"></span></p>
+        <p><strong>API URL:</strong> <span id="apiUrl"></span></p>
+    </div>
+    
+    <div class="test-box">
+        <h2>Test Endpoints</h2>
+        <button onclick="testGetAllApps()">Test: GetAllApps</button>
+        <button onclick="testGetAppDetail()">Test: GetAppDetail (ID: 1)</button>
+        <button onclick="testSearchApps()">Test: SearchApps (query: halodoc)</button>
+    </div>
+    
+    <div class="test-box">
+        <h2>Hasil Test</h2>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Deteksi path API
+        function getApiBaseUrl() {
+            const currentPath = window.location.pathname;
+            const currentDir = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            
+            if (currentDir === '' || currentDir === '/') {
+                return 'api/index.php';
+            }
+            
+            return `${currentDir}/api/index.php`;
+        }
+
+        const API_BASE_URL = getApiBaseUrl();
+        
+        // Tampilkan info path
+        document.getElementById('currentPath').textContent = window.location.pathname;
+        document.getElementById('apiUrl').textContent = API_BASE_URL;
+
+        async function testGetAllApps() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing getAllApps...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}?action=getAllApps`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ Success! Found ${data.total} apps</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">✗ Failed: ${data.message}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">✗ Error: ${error.message}</p>
+                    <p>Pastikan server PHP berjalan dan path API benar.</p>
+                    <p>URL yang dicoba: ${API_BASE_URL}?action=getAllApps</p>
+                `;
+            }
+        }
+
+        async function testGetAppDetail() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing getAppDetail...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}?action=getAppDetail&id=1`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ Success! App: ${data.app.name}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">✗ Failed: ${data.message}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">✗ Error: ${error.message}</p>
+                    <p>URL yang dicoba: ${API_BASE_URL}?action=getAppDetail&id=1</p>
+                `;
+            }
+        }
+
+        async function testSearchApps() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing searchApps...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}?action=searchApps&query=halodoc`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ Success! Found ${data.total} results</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">✗ Failed: ${data.message}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">✗ Error: ${error.message}</p>
+                    <p>URL yang dicoba: ${API_BASE_URL}?action=searchApps&query=halodoc</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
+

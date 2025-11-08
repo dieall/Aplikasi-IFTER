@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluasi Aplikasi Kesehatan Konsumen</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1><i class="fas fa-mobile-alt"></i> Evaluasi Aplikasi Kesehatan Konsumen</h1>
+                <button id="darkModeToggle" class="dark-mode-btn" title="Toggle Dark Mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            <p class="subtitle">Evaluasi kualitas, privasi, dan literasi pengguna aplikasi kesehatan seluler</p>
+        </header>
+
+        <nav class="main-nav">
+            <button class="nav-btn active" onclick="showHome()">
+                <i class="fas fa-home"></i> Beranda
+            </button>
+            <button class="nav-btn highlight" onclick="showSymptomChecker()">
+                <i class="fas fa-stethoscope"></i> Cek Gejala & Rekomendasi
+            </button>
+            <button class="nav-btn" onclick="showProblemDefinition()">
+                <i class="fas fa-question-circle"></i> Problem Definition
+            </button>
+            <button class="nav-btn" onclick="showSystemDesign()">
+                <i class="fas fa-sitemap"></i> System Design
+            </button>
+            <button class="nav-btn" onclick="showInsights()">
+                <i class="fas fa-lightbulb"></i> Insights & Analysis
+            </button>
+            <button class="nav-btn" onclick="showEthics()">
+                <i class="fas fa-shield-alt"></i> Ethics & Governance
+            </button>
+            <button class="nav-btn" onclick="showAbout()">
+                <i class="fas fa-info-circle"></i> About
+            </button>
+        </nav>
+
+        <div class="action-buttons">
+            <button class="action-btn" onclick="showDashboard()">
+                <i class="fas fa-chart-bar"></i> Dashboard
+            </button>
+            <button class="action-btn" onclick="showCompare()">
+                <i class="fas fa-balance-scale"></i> Bandingkan
+            </button>
+            <button class="action-btn" onclick="showFavorites()">
+                <i class="fas fa-heart"></i> Favorit <span id="favoriteCount" class="badge">0</span>
+            </button>
+            <button class="action-btn" onclick="showRecentViews()">
+                <i class="fas fa-history"></i> Terakhir Dilihat
+            </button>
+            <div class="dropdown">
+                <button class="action-btn dropdown-toggle">
+                    <i class="fas fa-download"></i> Export <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a href="#" onclick="exportToPDF(); return false;"><i class="fas fa-file-pdf"></i> Export PDF</a>
+                    <a href="#" onclick="exportToExcel(); return false;"><i class="fas fa-file-excel"></i> Export Excel</a>
+                    <a href="#" onclick="exportToCSV(); return false;"><i class="fas fa-file-csv"></i> Export CSV</a>
+                </div>
+            </div>
+            <button class="action-btn" onclick="window.print()">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Cari aplikasi kesehatan..." autocomplete="off">
+                <div id="searchSuggestions" class="search-suggestions hidden"></div>
+                <button id="searchBtn"><i class="fas fa-search"></i> Cari</button>
+            </div>
+            <div class="quick-filters">
+                <button class="quick-filter-btn" onclick="quickFilter('telemedicine')">
+                    <i class="fas fa-user-md"></i> Telemedicine
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('fitness')">
+                    <i class="fas fa-dumbbell"></i> Fitness
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('mental')">
+                    <i class="fas fa-brain"></i> Mental Health
+                </button>
+                <button class="quick-filter-btn" onclick="quickFilter('nutrition')">
+                    <i class="fas fa-apple-alt"></i> Nutrisi
+                </button>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-group">
+                <label>Filter Kategori:</label>
+                <select id="categoryFilter">
+                    <option value="all">Semua Kategori</option>
+                    <option value="telemedicine">Telemedicine</option>
+                    <option value="fitness">Fitness & Wellness</option>
+                    <option value="mental">Kesehatan Mental</option>
+                    <option value="nutrition">Nutrisi</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Skor Minimum:</label>
+                <select id="scoreFilter">
+                    <option value="0">Semua Skor</option>
+                    <option value="4.5">4.5+ (Excellent)</option>
+                    <option value="4.0">4.0+ (Very Good)</option>
+                    <option value="3.5">3.5+ (Good)</option>
+                    <option value="3.0">3.0+ (Fair)</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Urutkan:</label>
+                <select id="sortFilter">
+                    <option value="name">Nama A-Z</option>
+                    <option value="score-desc">Skor Tertinggi</option>
+                    <option value="score-asc">Skor Terendah</option>
+                    <option value="users">Pengguna Terbanyak</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <i class="fas fa-spinner fa-spin"></i> Memuat data...
+        </div>
+
+        <div id="dashboard" class="dashboard hidden">
+            <h2><i class="fas fa-chart-bar"></i> Dashboard Statistik</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-mobile-alt"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalApps">0</div>
+                        <div class="stat-label">Total Aplikasi</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-star"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="avgScore">0</div>
+                        <div class="stat-label">Rata-rata Skor</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalUsers">0</div>
+                        <div class="stat-label">Total Pengguna</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-shield-alt"></i></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="avgPrivacy">0</div>
+                        <div class="stat-label">Rata-rata Privasi</div>
+                    </div>
+                </div>
+            </div>
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Distribusi Skor Aplikasi</h3>
+                    <canvas id="scoreChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Skor per Kategori</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            <button class="back-btn" onclick="closeDashboard()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Daftar
+            </button>
+        </div>
+
+        <div id="compareSection" class="compare-section hidden">
+            <h2><i class="fas fa-balance-scale"></i> Bandingkan Aplikasi</h2>
+            <div class="compare-controls">
+                <select id="compareApp1" class="compare-select">
+                    <option value="">Pilih Aplikasi 1</option>
+                </select>
+                <select id="compareApp2" class="compare-select">
+                    <option value="">Pilih Aplikasi 2</option>
+                </select>
+                <button class="compare-btn" onclick="doCompare()">
+                    <i class="fas fa-search"></i> Bandingkan
+                </button>
+            </div>
+            <div id="compareResult" class="compare-result"></div>
+            <button class="back-btn" onclick="closeCompare()">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
+        </div>
+
+        <!-- Problem Definition Section -->
+        <div id="problemDefinition" class="content-section hidden">
+            <h2><i class="fas fa-question-circle"></i> Problem Definition & Relevance</h2>
+            <div class="content-card">
+                <h3>Health Informatics Challenge</h3>
+                <p>Dengan meningkatnya penggunaan aplikasi kesehatan seluler di Indonesia, muncul tantangan penting dalam memastikan kualitas, keamanan privasi, dan literasi pengguna terhadap aplikasi-aplikasi tersebut.</p>
+                
+                <h4>Masalah yang Dihadapi:</h4>
+                <ul class="problem-list">
+                    <li><strong>Kualitas Aplikasi:</strong> Tidak semua aplikasi kesehatan memiliki standar kualitas yang sama, baik dari segi fitur, akurasi informasi, maupun user experience.</li>
+                    <li><strong>Privasi & Keamanan Data:</strong> Banyak aplikasi kesehatan mengumpulkan data sensitif pengguna tanpa transparansi yang jelas tentang penggunaan dan perlindungan data tersebut.</li>
+                    <li><strong>Literasi Pengguna:</strong> Pengguna seringkali tidak memahami informasi kesehatan yang disajikan atau tidak menyadari implikasi privasi dari penggunaan aplikasi.</li>
+                    <li><strong>Kurangnya Evaluasi Komprehensif:</strong> Tidak ada sistem evaluasi terpusat yang membantu konsumen memilih aplikasi kesehatan yang tepat sesuai kebutuhan mereka.</li>
+                </ul>
+
+                <h4>Relevansi dengan Health Informatics:</h4>
+                <div class="relevance-grid">
+                    <div class="relevance-item">
+                        <i class="fas fa-user-md"></i>
+                        <h5>Consumer Health Informatics</h5>
+                        <p>Membantu konsumen membuat keputusan informasi kesehatan yang lebih baik melalui evaluasi aplikasi kesehatan.</p>
+                    </div>
+                    <div class="relevance-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <h5>Health Information Privacy</h5>
+                        <p>Meningkatkan kesadaran tentang pentingnya privasi data kesehatan dan transparansi dalam penggunaan data.</p>
+                    </div>
+                    <div class="relevance-item">
+                        <i class="fas fa-graduation-cap"></i>
+                        <h5>Health Literacy</h5>
+                        <p>Meningkatkan literasi kesehatan digital pengguna melalui evaluasi dan rekomendasi aplikasi yang informatif.</p>
+                    </div>
+                    <div class="relevance-item">
+                        <i class="fas fa-chart-line"></i>
+                        <h5>Quality Assessment</h5>
+                        <p>Menyediakan framework evaluasi yang sistematis untuk mengukur kualitas aplikasi kesehatan seluler.</p>
+                    </div>
+                </div>
+
+                <h4>Tujuan Sistem:</h4>
+                <ol class="objective-list">
+                    <li>Menyediakan evaluasi komprehensif aplikasi kesehatan berdasarkan kriteria objektif</li>
+                    <li>Meningkatkan transparansi tentang privasi dan keamanan data aplikasi kesehatan</li>
+                    <li>Membantu konsumen membuat keputusan informasi yang lebih baik</li>
+                    <li>Mendorong pengembang aplikasi untuk meningkatkan kualitas dan privasi</li>
+                </ol>
+            </div>
+            <button class="back-btn" onclick="showHome()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+            </button>
+        </div>
+
+        <!-- System Design Section -->
+        <div id="systemDesign" class="content-section hidden">
+            <h2><i class="fas fa-sitemap"></i> System Design & Architecture</h2>
+            <div class="content-card">
+                <h3>Arsitektur Sistem</h3>
+                <div class="architecture-diagram">
+                    <div class="arch-layer">
+                        <h4><i class="fas fa-desktop"></i> Presentation Layer (Frontend)</h4>
+                        <ul>
+                            <li>HTML5 untuk struktur halaman</li>
+                            <li>CSS3 dengan CSS Variables untuk theming</li>
+                            <li>JavaScript (Vanilla) untuk interaktivitas</li>
+                            <li>Chart.js untuk visualisasi data</li>
+                            <li>jsPDF untuk export PDF</li>
+                        </ul>
+                    </div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-layer">
+                        <h4><i class="fas fa-exchange-alt"></i> API Layer (Backend)</h4>
+                        <ul>
+                            <li>PHP RESTful API</li>
+                            <li>JSON response format</li>
+                            <li>CORS enabled untuk cross-origin requests</li>
+                            <li>Error handling dan validation</li>
+                        </ul>
+                    </div>
+                    <div class="arch-arrow">↓</div>
+                    <div class="arch-layer">
+                        <h4><i class="fas fa-database"></i> Data Layer</h4>
+                        <ul>
+                            <li>Structured data aplikasi kesehatan</li>
+                            <li>Evaluasi metrics dan scores</li>
+                            <li>Recommendations dan insights</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Workflow Sistem</h3>
+                <div class="workflow-diagram">
+                    <div class="workflow-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h5>User Request</h5>
+                            <p>User mengakses aplikasi dan memilih fitur (Browse, Search, Compare, Dashboard)</p>
+                        </div>
+                    </div>
+                    <div class="workflow-arrow">→</div>
+                    <div class="workflow-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h5>API Call</h5>
+                            <p>Frontend mengirim request ke API endpoint dengan parameter yang sesuai</p>
+                        </div>
+                    </div>
+                    <div class="workflow-arrow">→</div>
+                    <div class="workflow-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h5>Data Processing</h5>
+                            <p>Backend memproses request, filter, sort, dan format data sesuai kebutuhan</p>
+                        </div>
+                    </div>
+                    <div class="workflow-arrow">→</div>
+                    <div class="workflow-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h5>Response & Display</h5>
+                            <p>Data dikembalikan sebagai JSON dan ditampilkan dengan visualisasi yang sesuai</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Komponen Utama</h3>
+                <div class="components-grid">
+                    <div class="component-card">
+                        <i class="fas fa-list"></i>
+                        <h5>App List Module</h5>
+                        <p>Menampilkan daftar aplikasi dengan filter dan sorting</p>
+                    </div>
+                    <div class="component-card">
+                        <i class="fas fa-info-circle"></i>
+                        <h5>Detail Module</h5>
+                        <p>Menampilkan detail lengkap evaluasi aplikasi</p>
+                    </div>
+                    <div class="component-card">
+                        <i class="fas fa-chart-bar"></i>
+                        <h5>Dashboard Module</h5>
+                        <p>Statistik dan visualisasi data</p>
+                    </div>
+                    <div class="component-card">
+                        <i class="fas fa-balance-scale"></i>
+                        <h5>Compare Module</h5>
+                        <p>Perbandingan side-by-side aplikasi</p>
+                    </div>
+                </div>
+            </div>
+            <button class="back-btn" onclick="showHome()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+            </button>
+        </div>
+
+        <!-- Insights & Analysis Section -->
+        <div id="insights" class="content-section hidden">
+            <h2><i class="fas fa-lightbulb"></i> Insights & Analysis</h2>
+            <div class="content-card">
+                <h3>Key Findings</h3>
+                <div id="insightsContent" class="insights-content">
+                    <p>Memuat analisis...</p>
+                </div>
+            </div>
+            <button class="back-btn" onclick="showHome()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+            </button>
+        </div>
+
+        <!-- Ethics & Governance Section -->
+        <div id="ethics" class="content-section hidden">
+            <h2><i class="fas fa-shield-alt"></i> Ethical & Governance Reflection</h2>
+            <div class="content-card">
+                <h3>Privacy & Security Considerations</h3>
+                
+                <h4>1. Data Privacy</h4>
+                <div class="ethics-section">
+                    <p><strong>Prinsip:</strong> Sistem ini tidak mengumpulkan data pribadi pengguna. Semua data evaluasi adalah data publik tentang aplikasi kesehatan, bukan data pengguna.</p>
+                    <ul>
+                        <li>Tidak ada tracking atau analytics yang mengumpulkan data pribadi</li>
+                        <li>Tidak ada cookies yang menyimpan informasi sensitif</li>
+                        <li>LocalStorage hanya digunakan untuk preferensi UI (dark mode)</li>
+                    </ul>
+                </div>
+
+                <h4>2. Security Measures</h4>
+                <div class="ethics-section">
+                    <ul>
+                        <li><strong>Input Validation:</strong> Semua input dari user divalidasi untuk mencegah injection attacks</li>
+                        <li><strong>CORS Policy:</strong> CORS diaktifkan dengan kontrol yang tepat</li>
+                        <li><strong>Error Handling:</strong> Error messages tidak mengekspos informasi sensitif sistem</li>
+                        <li><strong>HTTPS:</strong> Direkomendasikan menggunakan HTTPS di production</li>
+                    </ul>
+                </div>
+
+                <h4>3. Ethical Considerations</h4>
+                <div class="ethics-section">
+                    <h5>Transparansi Evaluasi:</h5>
+                    <ul>
+                        <li>Kriteria evaluasi dijelaskan dengan jelas</li>
+                        <li>Skor dan penilaian didasarkan pada metrik objektif</li>
+                        <li>Rekomendasi perbaikan bersifat konstruktif</li>
+                    </ul>
+
+                    <h5>Fairness:</h5>
+                    <ul>
+                        <li>Semua aplikasi dievaluasi dengan kriteria yang sama</li>
+                        <li>Tidak ada bias terhadap aplikasi tertentu</li>
+                        <li>Evaluasi didasarkan pada data faktual</li>
+                    </ul>
+                </div>
+
+                <h4>4. Governance Framework</h4>
+                <div class="ethics-section">
+                    <h5>Data Governance:</h5>
+                    <ul>
+                        <li>Data evaluasi dikelola dengan struktur yang jelas</li>
+                        <li>Update data dapat dilakukan dengan mudah</li>
+                        <li>Version control untuk tracking perubahan</li>
+                    </ul>
+
+                    <h5>Quality Assurance:</h5>
+                    <ul>
+                        <li>Validasi data sebelum ditampilkan</li>
+                        <li>Error handling yang komprehensif</li>
+                        <li>Testing untuk memastikan akurasi</li>
+                    </ul>
+                </div>
+
+                <h4>5. Recommendations for Improvement</h4>
+                <div class="ethics-section">
+                    <ul>
+                        <li>Implementasi authentication jika diperlukan untuk fitur admin</li>
+                        <li>Penambahan audit log untuk tracking perubahan data</li>
+                        <li>Regular security updates dan patches</li>
+                        <li>Compliance dengan regulasi data privacy (GDPR, PDPA)</li>
+                        <li>User consent mechanism jika akan mengumpulkan data</li>
+                    </ul>
+                </div>
+            </div>
+            <button class="back-btn" onclick="showHome()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+            </button>
+        </div>
+
+        <!-- About Section -->
+        <div id="about" class="content-section hidden">
+            <h2><i class="fas fa-info-circle"></i> About</h2>
+            <div class="content-card">
+                <h3>Tentang Aplikasi</h3>
+                <p>Aplikasi Evaluasi Aplikasi Kesehatan Konsumen adalah sistem evaluasi komprehensif yang dirancang untuk membantu konsumen dalam memilih aplikasi kesehatan seluler yang tepat berdasarkan kualitas, privasi, dan literasi pengguna.</p>
+
+                <h3>Tim Pengembang</h3>
+                <div class="team-info">
+                    <p><strong>Project:</strong> Consumer Health App Evaluation</p>
+                    <p><strong>Course:</strong> Health Informatics</p>
+                    <p><strong>Purpose:</strong> Academic Assessment</p>
+                </div>
+
+                <h3>Teknologi yang Digunakan</h3>
+                <div class="tech-grid">
+                    <div class="tech-item"><i class="fab fa-html5"></i> HTML5</div>
+                    <div class="tech-item"><i class="fab fa-css3-alt"></i> CSS3</div>
+                    <div class="tech-item"><i class="fab fa-js"></i> JavaScript</div>
+                    <div class="tech-item"><i class="fab fa-php"></i> PHP</div>
+                    <div class="tech-item"><i class="fas fa-chart-bar"></i> Chart.js</div>
+                    <div class="tech-item"><i class="fas fa-file-pdf"></i> jsPDF</div>
+                </div>
+
+                <h3>Dokumentasi</h3>
+                <ul>
+                    <li>API Documentation: Lihat file README.md</li>
+                    <li>System Architecture: Lihat halaman System Design</li>
+                    <li>Code Comments: Tersedia di source code</li>
+                </ul>
+            </div>
+            <button class="back-btn" onclick="showHome()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+            </button>
+        </div>
+
+        <!-- Toast Notification Container -->
+        <div id="toastContainer" class="toast-container"></div>
+
+        <!-- Symptom Checker & Recommendation Section -->
+        <div id="symptomChecker" class="content-section hidden">
+            <h2><i class="fas fa-stethoscope"></i> Cek Gejala & Rekomendasi Aplikasi</h2>
+            <div class="content-card">
+                <div class="symptom-intro">
+                    <p>Masukkan gejala yang Anda rasakan, dan kami akan merekomendasikan aplikasi kesehatan yang sesuai untuk membantu Anda.</p>
+                </div>
+
+                <div class="symptom-input-section">
+                    <label for="symptomInput">
+                        <i class="fas fa-notes-medical"></i> Gejala yang Saya Rasakan:
+                    </label>
+                    <textarea 
+                        id="symptomInput" 
+                        class="symptom-input" 
+                        placeholder="Contoh: Saya mengalami sakit kepala, demam, dan batuk. Atau: Saya merasa cemas dan sulit tidur..."
+                        rows="4"
+                    ></textarea>
+                    <div class="symptom-examples">
+                        <p><strong>Contoh gejala:</strong></p>
+                        <div class="example-tags">
+                            <span class="example-tag" onclick="fillSymptom('Sakit kepala, demam, batuk')">Sakit kepala, demam, batuk</span>
+                            <span class="example-tag" onclick="fillSymptom('Cemas, sulit tidur, stress')">Cemas, sulit tidur, stress</span>
+                            <span class="example-tag" onclick="fillSymptom('Nyeri perut, mual, muntah')">Nyeri perut, mual, muntah</span>
+                            <span class="example-tag" onclick="fillSymptom('Sesak napas, nyeri dada')">Sesak napas, nyeri dada</span>
+                            <span class="example-tag" onclick="fillSymptom('Ingin konsultasi dokter umum')">Ingin konsultasi dokter umum</span>
+                            <span class="example-tag" onclick="fillSymptom('Ingin tracking nutrisi dan diet')">Ingin tracking nutrisi dan diet</span>
+                            <span class="example-tag" onclick="fillSymptom('Ingin olahraga dan fitness')">Ingin olahraga dan fitness</span>
+                        </div>
+                    </div>
+                    <button class="recommend-btn" onclick="getRecommendations()">
+                        <i class="fas fa-search"></i> Dapatkan Rekomendasi
+                    </button>
+                </div>
+
+                <div id="recommendationResult" class="recommendation-result hidden">
+                    <h3><i class="fas fa-clipboard-check"></i> Rekomendasi Aplikasi untuk Anda</h3>
+                    <div id="recommendationContent"></div>
+                </div>
+
+                <div class="disclaimer">
+                    <p><i class="fas fa-exclamation-triangle"></i> <strong>Peringatan:</strong> Rekomendasi ini hanya sebagai panduan. Untuk gejala serius atau darurat, segera hubungi layanan darurat medis atau kunjungi fasilitas kesehatan terdekat.</p>
+                </div>
+            </div>
+            <button class="back-btn" onclick="showHome()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+            </button>
+        </div>
+
+        <!-- Favorites Section -->
+        <div id="favoritesSection" class="content-section hidden">
+            <h2><i class="fas fa-heart"></i> Aplikasi Favorit</h2>
+            <div id="favoritesList" class="app-list"></div>
+            <button class="back-btn" onclick="showHome()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+            </button>
+        </div>
+
+        <!-- Recent Views Section -->
+        <div id="recentViewsSection" class="content-section hidden">
+            <h2><i class="fas fa-history"></i> Terakhir Dilihat</h2>
+            <div id="recentViewsList" class="app-list"></div>
+            <button class="back-btn" onclick="showHome()">
+                <i class="fas fa-arrow-left"></i> Kembali ke Beranda
+            </button>
+        </div>
+
+        <div id="appList" class="app-list"></div>
+
+        <div id="appDetail" class="app-detail hidden">
+            <div class="detail-header-actions">
+                <button class="back-btn" onclick="closeDetail()">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </button>
+                <div class="detail-actions-group">
+                    <button class="action-icon-btn" onclick="toggleFavorite()" id="favoriteBtn" title="Tambahkan ke Favorit">
+                        <i class="far fa-heart"></i>
+                    </button>
+                    <button class="action-icon-btn" onclick="shareApp()" title="Bagikan">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                    <button class="compare-add-btn" onclick="addToCompare()" id="addToCompareBtn">
+                        <i class="fas fa-plus"></i> Bandingkan
+                    </button>
+                </div>
+            </div>
+            <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <script src="assets/js/app.js"></script>
+    <script src="assets/js/features.js"></script>
+    <script src="assets/js/advanced-features.js"></script>
+    <script src="assets/js/symptom-checker.js"></script>
+</body>
+</html>
+
