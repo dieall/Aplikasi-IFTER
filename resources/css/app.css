@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --bg: #0b1220;
+        --panel: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.12);
+        --accent: #22c55e;
+        --muted: #94a3b8;
+    }
+
+    body {
+        @apply text-slate-100 min-h-screen;
+        background:
+            radial-gradient(circle at 20% 20%, rgba(34, 197, 94, 0.08), transparent 28%),
+            radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.08), transparent 30%),
+            radial-gradient(circle at 50% 80%, rgba(99, 102, 241, 0.08), transparent 25%),
+            #0b1220;
+    }
+
+    a {
+        @apply transition-colors duration-200;
+    }
+}
+
+@layer components {
+    .glass {
+        @apply bg-white/5 border border-white/10 backdrop-blur-md shadow-xl;
+    }
+
+    .card {
+        @apply glass rounded-2xl p-6;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm bg-green-500 text-slate-900 shadow-lg shadow-green-500/30 hover:bg-green-400;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm bg-white/10 text-slate-100 border border-white/15 hover:bg-white/15;
+    }
+
+    .badge {
+        @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 text-slate-100 border border-white/10;
+    }
+
+    .table-neo {
+        @apply w-full text-sm text-slate-100;
+    }
+
+    .table-neo th {
+        @apply text-left px-3 py-2 font-semibold text-slate-200 uppercase tracking-wide text-xs;
+    }
+
+    .table-neo td {
+        @apply px-3 py-2 border-t border-white/5;
+    }
+
+    .pill {
+        @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-200 border border-emerald-400/30;
+    }
+}
